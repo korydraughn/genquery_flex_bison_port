@@ -62,10 +62,10 @@ This option causes make_* functions to be generated for each token kind.
 %define api.token.prefix {GENQUERY_TOKEN_}
 
 %token <std::string> IDENTIFIER STRING_LITERAL
-%token SELECT NO_DISTINCT WHERE AND COMMA OPEN_PAREN CLOSE_PAREN
+%token SELECT NO_DISTINCT WHERE AND OR COMMA PAREN_OPEN PAREN_CLOSE
 %token BETWEEN EQUAL NOT_EQUAL BEGINNING_OF LIKE IN PARENT_OF
 %token LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
-%token CONDITION_OR CONDITION_AND CONDITION_NOT CONDITION_OR_EQUAL
+%token CONDITION_NOT ORDER BY
 %token END_OF_INPUT 0
 
 /*
@@ -81,8 +81,6 @@ While these directives support specifying a semantic type, Bison recommends not
 doing that and using these directives to specify precedence and associativity
 rules only.
 */
-%left CONDITION_OR
-%left CONDITION_AND
 %precedence CONDITION_NOT
 
 %type<gq::Selections> selections;
@@ -116,7 +114,7 @@ column:
     IDENTIFIER  { $$ = gq::Column{std::move($1)}; }
 
 select_function:
-    IDENTIFIER OPEN_PAREN IDENTIFIER CLOSE_PAREN  { $$ = gq::SelectFunction{std::move($1), gq::Column{std::move($3)}}; }
+    IDENTIFIER PAREN_OPEN IDENTIFIER PAREN_CLOSE  { $$ = gq::SelectFunction{std::move($1), gq::Column{std::move($3)}}; }
 
 conditions:
     condition  { $$ = gq::Conditions{std::move($1)}; }
@@ -127,7 +125,7 @@ condition:
 
 condition_expression:
     LIKE STRING_LITERAL  { $$ = gq::ConditionLike(std::move($2)); }
-  | IN OPEN_PAREN list_of_string_literals CLOSE_PAREN  { $$ = gq::ConditionIn(std::move($3)); }
+  | IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::ConditionIn(std::move($3)); }
   | BETWEEN STRING_LITERAL STRING_LITERAL { $$ = gq::ConditionBetween(std::move($2), std::move($3)); }
   | EQUAL STRING_LITERAL  { $$ = gq::ConditionEqual(std::move($2)); }
   | NOT_EQUAL STRING_LITERAL  { $$ = gq::ConditionNotEqual(std::move($2)); }
@@ -135,11 +133,10 @@ condition_expression:
   | LESS_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionLessThanOrEqualTo(std::move($2)); }
   | GREATER_THAN STRING_LITERAL  { $$ = gq::ConditionGreaterThan(std::move($2)); }
   | GREATER_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionGreaterThanOrEqualTo(std::move($2)); }
-  | PARENT_OF STRING_LITERAL  { $$ = gq::ConditionParentOf(std::move($2)); }
-  | BEGINNING_OF STRING_LITERAL  { $$ = gq::ConditionBeginningOf(std::move($2)); }
-  | condition_expression CONDITION_AND condition_expression  { $$ = gq::ConditionOperator_And(std::move($1), std::move($3)); }
-  | condition_expression CONDITION_OR  condition_expression  { $$ = gq::ConditionOperator_Or (std::move($1), std::move($3)); }
+  | PARENT_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionParentOf(std::move($3)); }
+  | BEGINNING_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionBeginningOf(std::move($3)); }
   | CONDITION_NOT condition_expression  { $$ = gq::ConditionOperator_Not(std::move($2)); }
+  | PAREN_OPEN condition_expression PAREN_CLOSE  { $$ = std::move($2); }
 
 list_of_string_literals:
     STRING_LITERAL  { $$ = std::vector<std::string>{std::move($1)}; }

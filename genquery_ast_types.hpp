@@ -102,42 +102,20 @@ namespace irods::experimental::api::genquery
         std::string string_literal;
     };
 
-    struct ConditionOperator_And;
-    struct ConditionOperator_Or;
     struct ConditionOperator_Not;
 
-    typedef boost::variant <
-        ConditionLike
-        , ConditionIn
-        , ConditionBetween
-        , ConditionEqual
-        , ConditionNotEqual
-        , ConditionLessThan
-        , ConditionLessThanOrEqualTo
-        , ConditionGreaterThan
-        , ConditionGreaterThanOrEqualTo
-        , ConditionParentOf
-        , ConditionBeginningOf
-        , boost::recursive_wrapper<ConditionOperator_And>
-        , boost::recursive_wrapper<ConditionOperator_Or>
-        , boost::recursive_wrapper<ConditionOperator_Not>
-        > ConditionExpression;
-
-    struct ConditionOperator_And {
-        ConditionOperator_And() = default;
-        ConditionOperator_And(ConditionExpression left, ConditionExpression right)
-            : left{std::move(left)}, right{std::move(right)} {}
-        ConditionExpression left;
-        ConditionExpression right;
-    };
-
-    struct ConditionOperator_Or {
-        ConditionOperator_Or() = default;
-        ConditionOperator_Or(ConditionExpression left, ConditionExpression right)
-            : left{std::move(left)}, right{std::move(right)} {}
-        ConditionExpression left;
-        ConditionExpression right;
-    };
+    using ConditionExpression = boost::variant<ConditionLike,
+                                               ConditionIn,
+                                               ConditionBetween,
+                                               ConditionEqual,
+                                               ConditionNotEqual,
+                                               ConditionLessThan,
+                                               ConditionLessThanOrEqualTo,
+                                               ConditionGreaterThan,
+                                               ConditionGreaterThanOrEqualTo,
+                                               ConditionParentOf,
+                                               ConditionBeginningOf,
+                                               boost::recursive_wrapper<ConditionOperator_Not>>;
 
     struct ConditionOperator_Not {
         ConditionOperator_Not() = default;

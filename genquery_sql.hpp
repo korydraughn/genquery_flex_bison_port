@@ -7,7 +7,7 @@
 
 namespace irods::experimental::api::genquery
 {
-    std::string sql(const Select&);
+    std::string sql(const Select& _select_statement);
 } // namespace irods::experimental::api::genquery
 
 #endif // IRODS_GENQUERY_SQL_HPP

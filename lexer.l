@@ -27,6 +27,8 @@
 (?i:in)                return gq::Parser::make_IN(gq::location());
 (?i:between)           return gq::Parser::make_BETWEEN(gq::location());
 (?i:no-distinct)       return gq::Parser::make_NO_DISTINCT(gq::location());
+(?i:order)             return gq::Parser::make_ORDER(gq::location());
+(?i:by)                return gq::Parser::make_BY(gq::location());
 "="                    return gq::Parser::make_EQUAL(gq::location());
 "!="                   return gq::Parser::make_NOT_EQUAL(gq::location());
 "<>"                   return gq::Parser::make_NOT_EQUAL(gq::location());
@@ -36,15 +38,12 @@
 ">="                   return gq::Parser::make_GREATER_THAN_OR_EQUAL_TO(gq::location());
 (?i:begin_of)          return gq::Parser::make_BEGINNING_OF(gq::location());
 (?i:parent_of)         return gq::Parser::make_PARENT_OF(gq::location());
-"||"                   return gq::Parser::make_CONDITION_OR(gq::location());
-"||="                  return gq::Parser::make_CONDITION_OR_EQUAL(gq::location());
-"&&"                   return gq::Parser::make_CONDITION_AND(gq::location());
 (?i:not)               return gq::Parser::make_CONDITION_NOT(gq::location());
 (?i:and)               return gq::Parser::make_AND(gq::location());
-(?i:or)                return gq::Parser::make_CONDITION_OR(gq::location());
+(?i:or)                return gq::Parser::make_OR(gq::location());
 ,                      return gq::Parser::make_COMMA(gq::location());
-"("                    return gq::Parser::make_OPEN_PAREN(gq::location());
-")"                    return gq::Parser::make_CLOSE_PAREN(gq::location());
+"("                    return gq::Parser::make_PAREN_OPEN(gq::location());
+")"                    return gq::Parser::make_PAREN_CLOSE(gq::location());
 [a-zA-Z][a-zA-Z0-9_]*  return gq::Parser::make_IDENTIFIER(yytext, gq::location());
 .                      std::cerr << "scanner: unknown character [" << yytext << "]\n"; // TODO: improve error handling
 <<EOF>>                return yyterminate();
