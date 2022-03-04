@@ -4,6 +4,7 @@
 #include <map>
 #include <tuple>
 #include <string>
+#include <vector>
 
 namespace irods::experimental::api::genquery
 {
@@ -539,7 +540,7 @@ namespace irods::experimental::api::genquery
 
     /* Define the Foreign Key links between tables */
 
-    const std::vector<const std::tuple<const std::string, const std::string, const std::string>> foreign_key_link_map{
+    const std::vector<std::tuple<std::string, std::string, std::string>> foreign_key_link_map{
         {"R_COLL_MAIN", "R_DATA_MAIN", "R_COLL_MAIN.coll_id = R_DATA_MAIN.coll_id" },
         {"R_RESC_GROUP", "R_RESC_MAIN", "R_RESC_GROUP.resc_id = R_RESC_MAIN.resc_id" },
         {"R_RESC_MAIN", "r_resc_metamap", "R_RESC_MAIN.resc_id = r_resc_metamap.object_id" },

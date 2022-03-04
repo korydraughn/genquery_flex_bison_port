@@ -339,6 +339,7 @@ namespace irods::experimental::api::genquery
     } // get_table_cycle_flag
 
 
+    // TODO Rename to init_FROM_clause()?
     auto prime_from_aliases() -> void
     {
         //log::api::info("Priming From Aliases");
@@ -558,6 +559,7 @@ namespace irods::experimental::api::genquery
 
 
     auto compute_table_linkage(const std::string& _t) -> bool;
+
     auto process_fklinks(const std::string& _t, const link_vector_type& _flk, bool _fwd) -> bool
     {
         for(const auto& l : _flk) {
@@ -651,17 +653,17 @@ namespace irods::experimental::api::genquery
         }
 
         return from;
-
     } // build_from_clause 
 
 
     auto build_where_clause() -> std::string
     {
-        const std::string space{" "};
-        const std::string conn{"AND"};
+        const std::string space = " ";
+        const std::string conn = "AND";
 
-        auto where = std::string{};
-        for(auto&& a : where_clauses) {
+        std::string where;
+
+        for (auto&& a : where_clauses) {
             where += a;
             where += space;
             where += conn;
@@ -669,7 +671,7 @@ namespace irods::experimental::api::genquery
         }
 
         auto p = where.find_last_of(conn);
-        if(std::string::npos != p) {
+        if (std::string::npos != p) {
             where.erase(where.find_last_of(conn) - 3);
         }
 
@@ -699,21 +701,21 @@ namespace irods::experimental::api::genquery
             throw std::runtime_error{"no columns selected"};
         }
 
-        auto con = sql(select.conditions);
-        if (con.empty()) {
-            // The user is not required to provide any conditionals.
-            //throw std::runtime_error{"error : no conditions provided"};
-        }
+        const auto conds = sql(select.conditions);
 
         if (tables.empty()) {
             throw std::runtime_error{"from tables is empty"};
         }
 
         prime_from_aliases();
-        compute_table_linkage(get_table_alias(tables[0]));
+        compute_table_linkage(tables[0].find(" ") == std::string::npos ? tables[0] : get_table_alias(tables[0]));
         annotate_redundant_table_aliases();
 
-        root += fmt::format("{}{} WHERE {}", sel, build_from_clause(), build_where_clause());
+        root += fmt::format("{}{}", sel, build_from_clause());
+
+        if (!conds.empty()) {
+            root += fmt::format(" WHERE {}", build_where_clause());
+        }
 
         //log::api::info("XXXX - sql {}", root);
         fmt::print("XXXX - sql [{}]\n", root);
