@@ -89,23 +89,6 @@ namespace irods::experimental::api::genquery
         return ret;
     }
 
-    std::string sql(const ConditionOperator_Or& op_or)
-    {
-        std::string ret;
-        ret += boost::apply_visitor(sql_visitor(), op_or.left);
-        ret += " OR ";
-        ret += boost::apply_visitor(sql_visitor(), op_or.right);
-        return ret;
-    }
-
-    std::string sql(const ConditionOperator_And& op_and)
-    {
-        std::string ret = boost::apply_visitor(sql_visitor(), op_and.left);
-        ret += " AND";
-        ret += boost::apply_visitor(sql_visitor(), op_and.right);
-        return ret;
-    }
-
     std::string sql(const ConditionOperator_Not& op_not)
     {
         std::string ret{" NOT "};
