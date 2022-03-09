@@ -2,14 +2,144 @@
 
 #include "table_column_key_maps.hpp"
 
+#include <boost/graph/graph_traits.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/breadth_first_search.hpp>
+#include <boost/graph/graphml.hpp>
+
 #include <fmt/format.h>
 
 #include <iostream>
 #include <stdexcept>
+#include <map>
+#include <array>
+#include <vector>
+#include <set>
+#include <utility>
+#include <string_view>
+#include <fstream>
+
+namespace
+{
+    // clang-format off
+    using graph_type         = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, boost::property<boost::vertex_name_t, std::string>>;
+    using vertex_type        = boost::graph_traits<graph_type>::vertex_descriptor;
+    using vertices_size_type = boost::graph_traits<graph_type>::vertices_size_type;
+    using edge_type          = std::pair<vertex_type, vertex_type>;
+    // clang-format on
+
+    constexpr const auto table_names = std::to_array({
+        "R_COLL_MAIN",                  // 0
+        "R_DATA_MAIN",                  // 1
+        "R_META_MAIN",                  // 2
+        "R_OBJT_ACCESS",                // 3
+        "R_OBJT_METAMAP",               // 4
+        "R_RESC_MAIN",                  // 5
+        "R_RULE_EXEC",                  // 6
+        "R_SPECIFIC_QUERY",             // 7
+        "R_TICKET_ALLOWED_GROUPS",      // 8
+        "R_TICKET_ALLOWED_HOSTS",       // 9
+        "R_TICKET_ALLOWED_USERS",       // 10
+        "R_TICKET_MAIN",                // 11
+        "R_TOKN_MAIN",                  // 12
+        "R_USER_AUTH",                  // 13
+        "R_USER_GROUP",                 // 14
+        "R_USER_MAIN",                  // 15
+        "R_USER_PASSWORD",              // 16
+        "R_USER_SESSION_KEY",           // 17
+        "R_ZONE_MAIN"                   // 18
+    }); // table name list
+
+    constexpr const auto table_edges = std::to_array({
+        edge_type{0, 1},    // R_COLL_MAIN.coll_id = R_DATA_MAIN.coll_id
+        edge_type{0, 3},    // R_COLL_MAIN.coll_id = R_OBJT_ACCESS.object_id
+        edge_type{0, 4},    // R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id
+        edge_type{0, 11},   // R_COLL_MAIN.coll_id = R_TICKET_MAIN.object_id
+
+        edge_type{1, 3},    // R_DATA_MAIN.data_id = R_OBJT_ACCESS.object_id
+        edge_type{1, 4},    // R_DATA_MAIN.data_id = R_OBJT_METAMAP.object_id
+        edge_type{1, 5},    // R_DATA_MAIN.resc_id = R_RESC_MAIN.resc_id
+        edge_type{1, 11},   // R_DATA_MAIN.data_id = R_TICKET_MAIN.object_id
+
+        edge_type{2, 4},    // R_META_MAIN.meta_id = R_OBJT_METAMAP.meta_id
+
+        edge_type{3, 12},   // R_OBJT_ACCESS.access_type_id = R_TOKN_MAIN.token_id
+
+        edge_type{4, 5},    // R_OBJT_METAMAP.object_id = R_RESC_MAIN.resc_id
+        edge_type{4, 15},   // R_OBJT_METAMAP.object_id = R_USER_MAIN.user_id
+
+        edge_type{11, 15},  // R_TICKET_MAIN.user_id = R_USER_MAIN.user_id
+
+        edge_type{15, 13},  // R_USER_MAIN.user_id = R_USER_AUTH.user_id
+        edge_type{15, 14},  // R_USER_MAIN.user_id = R_USER_GROUP.group_user_id
+        edge_type{15, 16},  // R_USER_MAIN.user_id = R_USER_PASSWORD.user_id
+        edge_type{15, 17}   // R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id
+    }); // table edges
+
+    auto table_name_index(const std::string_view _table_name) -> std::size_t
+    {
+        for (auto i = 0ull; i < table_names.size(); ++i) {
+            if (table_names[i] == _table_name) {
+                return i;
+            }
+        }
+
+        throw std::invalid_argument{fmt::format("table [{}] not supported", _table_name)};
+    } // table_name_index
+
+    template <typename PredecessorMap, std::size_t PredecessorMapSize = table_names.size()>
+    auto compute_table_join_paths(graph_type& _graph, PredecessorMap& _pmap, vertex_type _src_vertex)
+        -> std::array<std::vector<std::string>, PredecessorMapSize>
+        //-> std::array<std::vector<vertex_type>, PredecessorMapSize>
+    {
+        boost::breadth_first_search(
+            _graph,
+            boost::vertex(_src_vertex, _graph),
+            boost::visitor(boost::make_bfs_visitor(boost::record_predecessors(
+                boost::make_iterator_property_map(std::begin(_pmap), boost::get(boost::vertex_index, _graph)),
+                boost::on_tree_edge{}
+            )))
+        );
+
+        std::array<std::vector<std::string>, PredecessorMapSize> paths;
+        //std::array<std::vector<vertex_type>, PredecessorMapSize> paths;
+
+        for (auto i = 0ull; i < PredecessorMapSize; ++i) {
+            paths[i].reserve(PredecessorMapSize);
+
+            //for (auto cur = i; cur != std::size_t(-1); cur = _pmap[cur]) {
+            for (auto cur = i; graph_type::null_vertex() != _pmap[cur]; cur = _pmap[cur]) {
+                paths[i].push_back(table_names[cur]);
+                //paths[i].push_back(_pmap[cur]);
+            }
+
+            std::reverse(std::begin(paths[i]), std::end(paths[i]));
+        }
+
+        return paths;
+    } // compute_table_join_paths
+
+    template <typename Container>
+    auto print_predecessor_map(const Container& _pmap, const std::string_view _src_table) -> void
+    {
+        fmt::print("Table join paths starting from table [{}]\n", _src_table);
+        for (auto i = 0ull; i < table_names.size(); ++i) {
+            fmt::print("  {}: [{}]\n", table_names[i], fmt::join(_pmap[i], ", "));
+        }
+    } // print_predecessor_map
+} // anonymous namespace
 
 namespace irods::experimental::api::genquery
 {
     //using log = irods::experimental::log;
+
+    auto no_distinct_flag = false;
+
+    std::vector<std::string> columns;
+    std::set<std::string> tables;
+    std::vector<std::string> from_aliases;
+    std::vector<std::string> where_clauses;
+    std::vector<std::string> processed_tables;
 
     template <typename Iterable>
     std::string to_string(const Iterable& iterable)
@@ -27,21 +157,13 @@ namespace irods::experimental::api::genquery
         }
     };
 
-    auto no_distinct_flag = false;
-
-    std::vector<std::string> columns;
-    std::vector<std::string> tables;
-    std::vector<std::string> from_aliases;
-    std::vector<std::string> where_clauses;
-    std::vector<std::string> processed_tables;
-
     std::string sql(const Column& column)
     {
         const auto iter = column_name_mappings.find(column.name);
         
         if (iter != std::end(column_name_mappings)) {
             columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
-            tables.push_back(iter->second.table);
+            tables.insert(iter->second.table);
             return columns.back();
         }
 
@@ -83,7 +205,7 @@ namespace irods::experimental::api::genquery
         std::string ret;
 
         for (auto&& selection : selections) {
-            auto sel = boost::apply_visitor(sql_visitor{}, selection);
+            auto sel = boost::apply_visitor(sql_visitor(), selection);
         }
 
         return ret;
@@ -203,7 +325,7 @@ namespace irods::experimental::api::genquery
             
             if (iter != std::end(column_name_mappings)) {
                 columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
-                tables.push_back(iter->second.table);
+                tables.insert(iter->second.table);
             }
         }
 
@@ -217,6 +339,30 @@ namespace irods::experimental::api::genquery
 
         auto sql_tables = fmt::format("tables  = [{}]\n", fmt::join(tables, ", "));
         auto sql_columns = fmt::format("columns = [{}]\n", fmt::join(columns, ", "));
+
+        graph_type g{table_edges.data(), table_edges.data() + table_edges.size(), table_names.size()};
+
+        // Assign the table names to each vertex.
+        for (auto [iter, last] = boost::vertices(g); iter != last; ++iter) {
+            boost::put(boost::vertex_name, g, *iter, table_names[*iter]);
+        }
+
+        // Print the list of edges.
+        fmt::print("Edges:\n");
+        for (auto [iter, last] = boost::edges(g); iter != last; ++iter) {
+            fmt::print("  [{}] can be joined to [{}]\n", table_names[boost::source(*iter, g)], table_names[boost::target(*iter, g)]);
+        }
+
+        std::array<vertex_type, table_names.size()> predecessor_map;
+        std::fill(std::begin(predecessor_map), std::end(predecessor_map), graph_type::null_vertex());
+
+        const auto paths = compute_table_join_paths(g, predecessor_map, table_name_index(*std::begin(tables)));
+        print_predecessor_map(paths, *std::begin(tables));
+
+        std::ofstream out{"./gql.graphml"};
+        boost::dynamic_properties dp;
+        dp.property("name", boost::get(boost::vertex_name, g));
+        boost::write_graphml(out, g, dp, true);
 
         return sql_tables + sql_columns;
     }
