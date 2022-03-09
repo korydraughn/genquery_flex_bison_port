@@ -96,6 +96,24 @@ namespace irods::experimental::genquery
 
         return subset;
     } // filter
+
+    template <typename VertexType>
+    auto get_shortest_path(const paths_type<VertexType>& _paths) -> const path_type<VertexType>*
+    {
+        if (_paths.empty()) {
+            return nullptr;
+        }
+
+        const path_type<VertexType>* shortest_path = &*std::begin(_paths);
+
+        for (auto iter = std::next(std::begin(_paths)); iter != std::end(_paths); ++iter) {
+            if (iter->size() < shortest_path->size()) {
+                shortest_path = &*iter;
+            }
+        }
+
+        return shortest_path;
+    } // get_shortest_path
 } // namespace irods::experimental::genquery
 
 #endif // IRODS_GENQUERY_UTILITIES_HPP

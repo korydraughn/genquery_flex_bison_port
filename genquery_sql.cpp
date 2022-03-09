@@ -370,24 +370,19 @@ namespace irods::experimental::api::genquery
             fmt::print("  [{}]\n", fmt::join(p, ", "));
         }
 
-        const auto joins = to_table_joins(filtered_paths, g);
-        fmt::print("Table Joins:\n");
-        for (auto&& j : joins) {
-            fmt::print("  [{}]\n", fmt::join(j, ", "));
+        const auto* shortest_path = irods::experimental::genquery::get_shortest_path(filtered_paths);
+
+        if (shortest_path) {
+            fmt::print("Shortest Filtered Path:\n");
+            fmt::print("  [{}]\n", fmt::join(*shortest_path, ", "));
+
+            //const auto joins = to_table_joins(filtered_paths, g);
+            const auto joins = to_table_joins(std::set{*shortest_path}, g);
+            fmt::print("Table Joins:\n");
+            for (auto&& j : joins) {
+                fmt::print("  [{}]\n", fmt::join(j, ", "));
+            }
         }
-
-#if 0
-        std::array<vertex_type, table_names.size()> predecessor_map;
-        std::fill(std::begin(predecessor_map), std::end(predecessor_map), graph_type::null_vertex());
-
-        const auto paths = compute_table_join_paths(g, predecessor_map, table_name_index(*std::begin(tables)));
-        print_predecessor_map(paths, *std::begin(tables));
-
-        std::ofstream out{"./gql.graphml"};
-        boost::dynamic_properties dp;
-        dp.property("name", boost::get(boost::vertex_name, g));
-        boost::write_graphml(out, g, dp, true);
-#endif
 
         return sql_tables + sql_columns;
     }
