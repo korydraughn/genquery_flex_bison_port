@@ -50,7 +50,13 @@ namespace
         "R_USER_MAIN",                  // 15
         "R_USER_PASSWORD",              // 16
         "R_USER_SESSION_KEY",           // 17
-        "R_ZONE_MAIN"                   // 18
+        "R_ZONE_MAIN",                  // 18
+
+        // NEW STUFF
+        "R_META_MAIN_COLL",             // 19
+        "R_META_MAIN_DATA",             // 20
+        "R_OBJT_METAMAP_COLL",          // 21
+        "R_OBJT_METAMAP_DATA"           // 22
     }); // table_names
 
     constinit const auto table_edges = std::to_array<edge_type>({
@@ -76,7 +82,13 @@ namespace
         {15, 13},  // R_USER_MAIN.user_id = R_USER_AUTH.user_id
         {15, 14},  // R_USER_MAIN.user_id = R_USER_GROUP.group_user_id
         {15, 16},  // R_USER_MAIN.user_id = R_USER_PASSWORD.user_id
-        {15, 17}   // R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id
+        {15, 17},  // R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id
+
+        // NEW STUFF
+        {0, 21},   // R_COLL_MAIN.coll_id = R_OBJT_METAMAP_COLL.object_id
+        {1, 22},   // R_DATA_MAIN.data_id = R_OBJT_METAMAP_DATA.object_id
+        {19, 21},  // R_META_MAIN_COLL.meta_id = R_OBJT_METAMAP_COLL.meta_id
+        {20, 22}   // R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id
     }); // table_edges
 
     constinit const auto table_joins = std::to_array({
@@ -102,7 +114,13 @@ namespace
         "R_USER_MAIN.user_id = R_USER_AUTH.user_id",
         "R_USER_MAIN.user_id = R_USER_GROUP.group_user_id",
         "R_USER_MAIN.user_id = R_USER_PASSWORD.user_id",
-        "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id"
+        "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id",
+
+        // NEW STUFF
+        "R_COLL_MAIN.coll_id = R_OBJT_METAMAP_COLL.object_id",
+        "R_DATA_MAIN.data_id = R_OBJT_METAMAP_DATA.object_id",
+        "R_META_MAIN_COLL.meta_id = R_OBJT_METAMAP_COLL.meta_id",
+        "R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id"
     }); // table_joins
 
     constexpr auto table_name_index(const std::string_view _table_name) -> std::size_t
@@ -377,11 +395,25 @@ namespace irods::experimental::api::genquery
             fmt::print("  [{}]\n", fmt::join(*shortest_path, ", "));
 
             //const auto joins = to_table_joins(filtered_paths, g);
-            const auto joins = to_table_joins(std::set{*shortest_path}, g);
+            const auto joins = to_table_joins(std::set{*shortest_path}, g, tables, table_names);
             fmt::print("Table Joins:\n");
             for (auto&& j : joins) {
                 fmt::print("  [{}]\n", fmt::join(j, ", "));
             }
+
+            // Update the list of table names because producing the joins likely added
+            // additional tables.
+            std::set<std::string_view> table_aliases;
+            std::transform(std::begin(tables), std::end(tables), std::inserter(table_aliases, std::end(table_aliases)),
+                [](auto&& _table_name) -> std::string_view
+                {
+                    if (const auto iter = table_alias_map.find(_table_name); iter != std::end(table_alias_map)) {
+                        return iter->second;
+                    }
+
+                    return _table_name;
+                });
+            sql_tables = fmt::format("tables  = [{}]\n", fmt::join(table_aliases, ", "));
         }
 
         return sql_tables + sql_columns;

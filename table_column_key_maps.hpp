@@ -4,6 +4,7 @@
 #include <map>
 #include <tuple>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace irods::experimental::api::genquery
@@ -247,19 +248,19 @@ namespace irods::experimental::api::genquery
         {"META_NAMESPACE_MSRVC",      {"R_META_MAIN", "meta_namespace"}},
         {"META_NAMESPACE_MET2",       {"R_META_MAIN", "meta_namespace"}},
 
-        {"META_DATA_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_DATA_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_DATA_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_DATA_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_DATA_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_DATA_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
+        {"META_DATA_ATTR_NAME",   {"R_META_MAIN_DATA", "meta_attr_name"}},
+        {"META_DATA_ATTR_VALUE",  {"R_META_MAIN_DATA", "meta_attr_value"}},
+        {"META_DATA_ATTR_UNITS",  {"R_META_MAIN_DATA", "meta_attr_unit"}},
+        {"META_DATA_ATTR_ID",     {"R_META_MAIN_DATA", "meta_id"}},
+        {"META_DATA_CREATE_TIME", {"R_META_MAIN_DATA", "create_ts"}},
+        {"META_DATA_MODIFY_TIME", {"R_META_MAIN_DATA", "modify_ts"}},
 
-        {"META_COLL_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_COLL_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_COLL_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_COLL_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_COLL_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_COLL_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
+        {"META_COLL_ATTR_NAME",   {"R_META_MAIN_COLL", "meta_attr_name"}},
+        {"META_COLL_ATTR_VALUE",  {"R_META_MAIN_COLL", "meta_attr_value"}},
+        {"META_COLL_ATTR_UNITS",  {"R_META_MAIN_COLL", "meta_attr_unit"}},
+        {"META_COLL_ATTR_ID",     {"R_META_MAIN_COLL", "meta_id"}},
+        {"META_COLL_CREATE_TIME", {"R_META_MAIN_COLL", "create_ts"}},
+        {"META_COLL_MODIFY_TIME", {"R_META_MAIN_COLL", "modify_ts"}},
 
         {"META_RESC_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_RESC_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
@@ -461,17 +462,17 @@ namespace irods::experimental::api::genquery
         {"MSRVC_VER_CREATE_TIME", {"R_MICROSRVC_VER", "create_ts"}},
         {"MSRVC_VER_MODIFY_TIME", {"R_MICROSRVC_VER", "modify_ts"}},
 
-        {"DATA_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"DATA_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"DATA_ACCESS_DATA_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"DATA_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"DATA_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
+        {"DATA_ACCESS_TYPE",     {"R_OBJT_ACCESS_DATA", "access_type_id"}},
+        {"DATA_ACCESS_USER_ID",  {"R_OBJT_ACCESS_DATA", "user_id"}},
+        {"DATA_ACCESS_DATA_ID",  {"R_OBJT_ACCESS_DATA", "object_id"}},
+        {"DATA_ACCESS_NAME",     {"R_TOKN_MAIN_DATA", "token_name"}},
+        {"DATA_TOKEN_NAMESPACE", {"R_TOKN_MAIN_DATA", "token_namespace"}},
 
-        {"COLL_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"COLL_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"COLL_ACCESS_COLL_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"COLL_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
+        {"COLL_ACCESS_TYPE",     {"R_OBJT_ACCESS_COLL", "access_type_id"}},
+        {"COLL_ACCESS_USER_ID",  {"R_OBJT_ACCESS_COLL", "user_id"}},
+        {"COLL_ACCESS_COLL_ID",  {"R_OBJT_ACCESS_COLL", "object_id"}},
+        {"COLL_ACCESS_NAME",     {"R_TOKN_MAIN_COLL", "token_name"}},
+        {"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN_COLL", "token_namespace"}},
 
         {"RESC_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
         {"RESC_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
@@ -530,6 +531,13 @@ namespace irods::experimental::api::genquery
         {"TICKET_OWNER_ZONE",              {"R_USER_MAIN", "zone_name"}},
         {"TICKET_DATA_COLL_NAME",          {"R_COLL_MAIN", "coll_name"}} // Includes join between R_DATA_MAIN and R_COLL_MAIN.
     }; // column_table_alias_map
+
+    const std::map<std::string_view, std::string_view> table_alias_map{
+        {"R_META_MAIN_COLL",    "R_META_MAIN R_META_MAIN_COLL"},
+        {"R_META_MAIN_DATA",    "R_META_MAIN R_META_MAIN_DATA"},
+        {"R_OBJT_METAMAP_COLL", "R_OBJT_METAMAP R_OBJT_METAMAP_COLL"},
+        {"R_OBJT_METAMAP_DATA", "R_OBJT_METAMAP R_OBJT_METAMAP_DATA"}
+    }; // table_alias_map
 
     // Defines the foreign key links between tables.
 

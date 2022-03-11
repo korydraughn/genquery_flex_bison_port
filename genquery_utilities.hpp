@@ -51,18 +51,23 @@ namespace irods::experimental::genquery
         return paths;
     } // compute_all_paths_from_source
 
-    template <typename VertexType, typename GraphType>
-    auto to_table_joins(const paths_type<VertexType>& _paths, const GraphType& _graph)
+    template <typename VertexType, typename GraphType, typename TableNames>
+    auto to_table_joins(const paths_type<VertexType>& _paths,
+                        const GraphType& _graph,
+                        std::set<std::string>& _tables,
+                        const TableNames& _table_names)
         -> std::vector<std::vector<std::string_view>>
     {
         std::vector<std::vector<std::string_view>> joins;
         joins.reserve(_paths.size());
 
-        std::for_each(std::begin(_paths), std::end(_paths), [&_graph, &joins](auto&& _p) {
+        std::for_each(std::begin(_paths), std::end(_paths), [&_graph, &_tables, &_table_names, &joins](auto&& _p) {
             joins.emplace_back();
 
             for (decltype(_p.size()) i = 0; i < _p.size() - 1; ++i) {
                 if (const auto [edge, exists] = boost::edge(_p[i], _p[i + 1], _graph); exists) {
+                    _tables.insert(_table_names[_p[i]]);
+                    _tables.insert(_table_names[_p[i + 1]]);
                     joins.back().push_back(_graph[edge].sql_join_condition);
                 }
             }
