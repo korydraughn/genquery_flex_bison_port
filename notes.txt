@@ -1,0 +1,28 @@
+Q. What can metadata be applied to?
+
+    - data objects
+    - collections
+    - resources
+    - users
+
+Q. Does it make sense to accept combinations of these entities?
+
+    Perhaps data objects and collections, but not any of the entities.
+
+    One could argue that data objects and collections shouldn't be allowed to
+    mix either.
+
+Q. Should metadata be attachable to the following?
+
+    - Rules
+    - Microservices
+
+Q. Should table aliases get links to other tables just like their non-alias forms?
+   For example, we have R_DATA_MAIN and R_DATA_MAIN_META. Should R_DATA_MAIN_META be
+   joinable to R_USER_MAIN because R_DATA_MAIN is joinable to R_USER_MAIN?
+
+============
+Other Ideas:
+
+- Cache GenQuery to SQL translation results.
+- When handling a single column query, there is no need to go through parser.

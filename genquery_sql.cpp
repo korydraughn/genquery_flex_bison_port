@@ -56,9 +56,22 @@ namespace
         "R_META_MAIN_COLL",             // 19
         "R_META_MAIN_DATA",             // 20
         "R_OBJT_METAMAP_COLL",          // 21
-        "R_OBJT_METAMAP_DATA"           // 22
+        "R_OBJT_METAMAP_DATA",          // 22
+
+        "R_META_MAIN_RESC",             // 23
+        "R_META_MAIN_USER",             // 24
+        "R_OBJT_METAMAP_RESC",          // 25
+        "R_OBJT_METAMAP_USER",          // 26
+
+        "R_OBJT_ACCESS_COLL",           // 27
+        "R_OBJT_ACCESS_DATA",           // 28
+        "R_TOKN_MAIN_COLL",             // 29
+        "R_TOKN_MAIN_DATA",             // 30
     }); // table_names
 
+    // TODO Consider using the lookup function to resolve table names to indices.
+    // TODO R_DATA_MAIN and R_USER_MAIN are joinable via data_owner_name (same as data_owner_zone).
+    // TODO R_COLL_MAIN and R_USER_MAIN are joinable via coll_owner_name (same as coll_owner_zone).
     constinit const auto table_edges = std::to_array<edge_type>({
         {0, 1},    // R_COLL_MAIN.coll_id = R_DATA_MAIN.coll_id
         {0, 3},    // R_COLL_MAIN.coll_id = R_OBJT_ACCESS.object_id
@@ -88,7 +101,23 @@ namespace
         {0, 21},   // R_COLL_MAIN.coll_id = R_OBJT_METAMAP_COLL.object_id
         {1, 22},   // R_DATA_MAIN.data_id = R_OBJT_METAMAP_DATA.object_id
         {19, 21},  // R_META_MAIN_COLL.meta_id = R_OBJT_METAMAP_COLL.meta_id
-        {20, 22}   // R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id
+        {20, 22},  // R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id
+
+        {5, 25},   // R_RESC_MAIN.resc_id = R_OBJT_METAMAP_RESC.object_id
+        {15, 26},  // R_USER_MAIN.user_id = R_OBJT_METAMAP_USER.object_id
+        {23, 25},  // R_META_MAIN_RESC.meta_id = R_OBJT_METAMAP_RESC.meta_id
+        {24, 26},  // R_META_MAIN_USER.meta_id = R_OBJT_METAMAP_USER.meta_id
+
+        {27, 29},  // R_OBJT_ACCESS_COLL.access_type_id = R_TOKN_MAIN_COLL.token_id
+        {28, 30},  // R_OBJT_ACCESS_DATA.access_type_id = R_TOKN_MAIN_DATA.token_id
+
+        // TODO Handle R_USER_GROUP?
+        // TODO Handle R_QUOTA_MAIN
+        // TODO Handle R_QUOTA_USAGE
+        // TODO Handle R_TICKET_MAIN
+        // TODO Handle R_TICKET_ALLOWED_HOSTS
+        // TODO Handle R_TICKET_ALLOWED_USERS
+        // TODO Handle R_TICKET_ALLOWED_GROUPS
     }); // table_edges
 
     constinit const auto table_joins = std::to_array({
@@ -120,7 +149,15 @@ namespace
         "R_COLL_MAIN.coll_id = R_OBJT_METAMAP_COLL.object_id",
         "R_DATA_MAIN.data_id = R_OBJT_METAMAP_DATA.object_id",
         "R_META_MAIN_COLL.meta_id = R_OBJT_METAMAP_COLL.meta_id",
-        "R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id"
+        "R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id",
+
+        "R_RESC_MAIN.resc_id = R_OBJT_METAMAP_RESC.object_id",
+        "R_USER_MAIN.user_id = R_OBJT_METAMAP_USER.object_id",
+        "R_META_MAIN_RESC.meta_id = R_OBJT_METAMAP_RESC.meta_id",
+        "R_META_MAIN_USER.meta_id = R_OBJT_METAMAP_USER.meta_id",
+
+        "R_OBJT_ACCESS_COLL.access_type_id = R_TOKN_MAIN_COLL.token_id",
+        "R_OBJT_ACCESS_DATA.access_type_id = R_TOKN_MAIN_DATA.token_id",
     }); // table_joins
 
     constexpr auto table_name_index(const std::string_view _table_name) -> std::size_t

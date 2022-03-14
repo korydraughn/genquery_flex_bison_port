@@ -239,6 +239,7 @@ namespace irods::experimental::api::genquery
         {"COLL_INFO1",       {"R_COLL_MAIN", "coll_info1"}},
         {"COLL_INFO2",       {"R_COLL_MAIN", "coll_info2"}},
 
+        // TODO Investigate these.
         {"META_NAMESPACE_COLL",       {"R_META_MAIN", "meta_namespace"}},
         {"META_NAMESPACE_DATA",       {"R_META_MAIN", "meta_namespace"}},
         {"META_NAMESPACE_RESC",       {"R_META_MAIN", "meta_namespace"}},
@@ -262,13 +263,14 @@ namespace irods::experimental::api::genquery
         {"META_COLL_CREATE_TIME", {"R_META_MAIN_COLL", "create_ts"}},
         {"META_COLL_MODIFY_TIME", {"R_META_MAIN_COLL", "modify_ts"}},
 
-        {"META_RESC_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_RESC_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_RESC_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_RESC_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_RESC_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_RESC_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
+        {"META_RESC_ATTR_NAME",   {"R_META_MAIN_RESC", "meta_attr_name"}},
+        {"META_RESC_ATTR_VALUE",  {"R_META_MAIN_RESC", "meta_attr_value"}},
+        {"META_RESC_ATTR_UNITS",  {"R_META_MAIN_RESC", "meta_attr_unit"}},
+        {"META_RESC_ATTR_ID",     {"R_META_MAIN_RESC", "meta_id"}},
+        {"META_RESC_CREATE_TIME", {"R_META_MAIN_RESC", "create_ts"}},
+        {"META_RESC_MODIFY_TIME", {"R_META_MAIN_RESC", "modify_ts"}},
 
+        // TODO Should these be exposed given that resource groups aren't a thing anymore?
         {"META_RESC_GROUP_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_RESC_GROUP_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
         {"META_RESC_GROUP_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
@@ -276,13 +278,15 @@ namespace irods::experimental::api::genquery
         {"META_RESC_GROUP_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
         {"META_RESC_GROUP_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
-        {"META_USER_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_USER_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_USER_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_USER_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_USER_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_USER_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
+        {"META_USER_ATTR_NAME",   {"R_META_MAIN_USER", "meta_attr_name"}},
+        {"META_USER_ATTR_VALUE",  {"R_META_MAIN_USER", "meta_attr_value"}},
+        {"META_USER_ATTR_UNITS",  {"R_META_MAIN_USER", "meta_attr_unit"}},
+        {"META_USER_ATTR_ID",     {"R_META_MAIN_USER", "meta_id"}},
+        {"META_USER_CREATE_TIME", {"R_META_MAIN_USER", "create_ts"}},
+        {"META_USER_MODIFY_TIME", {"R_META_MAIN_USER", "modify_ts"}},
 
+        // TODO Should metadata be attachable to rules?
+        // What is the use-case here?
         {"META_RULE_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_RULE_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
         {"META_RULE_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
@@ -290,6 +294,8 @@ namespace irods::experimental::api::genquery
         {"META_RULE_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
         {"META_RULE_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
+        // TODO Should metadata be attachable to microservices?
+        // What is the use-case here?
         {"META_MSRVC_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_MSRVC_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
         {"META_MSRVC_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
@@ -297,6 +303,7 @@ namespace irods::experimental::api::genquery
         {"META_MSRVC_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
         {"META_MSRVC_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
+        // TODO What are these?
         {"META_MET2_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_MET2_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
         {"META_MET2_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
@@ -335,12 +342,15 @@ namespace irods::experimental::api::genquery
         {"AUDIT_CREATE_TIME", {"R_OBJT_AUDIT", "create_ts"}},
         {"AUDIT_MODIFY_TIME", {"R_OBJT_AUDIT", "modify_ts"}},
 
+        // TODO These likely need table alias?
         {"COLL_USER_NAME", {"R_USER_MAIN", "user_name"}},
         {"COLL_USER_ZONE", {"R_USER_MAIN", "zone_name"}},
 
+        // TODO These likely need table alias?
         {"RESC_USER_NAME", {"R_USER_MAIN", "user_name"}},
         {"RESC_USER_ZONE", {"R_USER_MAIN", "zone_name"}},
 
+        // TODO Should these be exposed?
         {"SL_HOST_NAME",   {"R_SERVER_LOAD", "host_name"}},
         {"SL_RESC_NAME",   {"R_SERVER_LOAD", "resc_name"}},
         {"SL_CPU_USED",    {"R_SERVER_LOAD", "cpu_used"}},
@@ -352,6 +362,7 @@ namespace irods::experimental::api::genquery
         {"SL_NET_OUTPUT",  {"R_SERVER_LOAD", "net_output"}},
         {"SL_CREATE_TIME", {"R_SERVER_LOAD", "create_ts"}},
 
+        // TODO Should these be exposed?
         {"SLD_RESC_NAME",   {"R_SERVER_LOAD_DIGEST", "resc_name"}},
         {"SLD_LOAD_FACTOR", {"R_SERVER_LOAD_DIGEST", "load_factor"}},
         {"SLD_CREATE_TIME", {"R_SERVER_LOAD_DIGEST", "create_ts"}},
@@ -377,6 +388,8 @@ namespace irods::experimental::api::genquery
         {"RULE_COMMENT",              {"R_RULE_MAIN", "r_comment"}},
         {"RULE_CREATE_TIME",          {"R_RULE_MAIN", "create_ts"}},
         {"RULE_MODIFY_TIME",          {"R_RULE_MAIN", "modify_ts"}},
+
+        // TODO What are these? Should these be exposed?
         {"RULE_BASE_MAP_VERSION",     {"R_RULE_BASE_MAP", "map_version"}},
         {"RULE_BASE_MAP_PRIORITY",    {"R_RULE_BASE_MAP", "map_priority"}},
         {"RULE_BASE_MAP_BASE_NAME",   {"R_RULE_BASE_MAP", "map_base_name"}},
@@ -386,6 +399,7 @@ namespace irods::experimental::api::genquery
         {"RULE_BASE_MAP_CREATE_TIME", {"R_RULE_BASE_MAP", "create_ts"}},
         {"RULE_BASE_MAP_MODIFY_TIME", {"R_RULE_BASE_MAP", "modify_ts"}},
 
+        // TODO What are these? Should these be exposed?
         {"DVM_ID",                   {"R_RULE_DVM", "dvm_id"}},
         {"DVM_VERSION",              {"R_RULE_DVM", "dvm_version"}},
         {"DVM_BASE_NAME",            {"R_RULE_DVM", "dvm_base_name"}},
@@ -406,6 +420,7 @@ namespace irods::experimental::api::genquery
         {"DVM_BASE_MAP_CREATE_TIME", {"R_RULE_DVM_MAP", "create_ts"}},
         {"DVM_BASE_MAP_MODIFY_TIME", {"R_RULE_DVM_MAP", "modify_ts"}},
 
+        // TODO What are these? Should these be exposed?
         {"FNM_ID",                   {"R_RULE_FNM", "fnm_id"}},
         {"FNM_VERSION",              {"R_RULE_FNM", "fnm_version"}},
         {"FNM_BASE_NAME",            {"R_RULE_FNM", "fnm_base_name"}},
@@ -434,11 +449,13 @@ namespace irods::experimental::api::genquery
         {"QUOTA_USAGE_RESC_ID",     {"R_QUOTA_USAGE", "resc_id"}},
         {"QUOTA_USAGE",             {"R_QUOTA_USAGE", "quota_usage"}},
         {"QUOTA_USAGE_MODIFY_TIME", {"R_QUOTA_USAGE", "modify_ts"}},
+        // TODO Probably need aliases.
         {"QUOTA_USER_NAME",         {"R_USER_MAIN", "user_name"}},
         {"QUOTA_USER_TYPE",         {"R_USER_MAIN", "user_type_name"}},
         {"QUOTA_USER_ZONE",         {"R_USER_MAIN", "zone_name"}},
         {"QUOTA_RESC_NAME",         {"R_RESC_MAIN", "resc_name"}},
 
+        // TODO What are these? Should these be exposed?
         {"MSRVC_ID",              {"R_MICROSRVC_MAIN", "msrvc_id"}},
         {"MSRVC_MODULE_NAME",     {"R_MICROSRVC_MAIN", "msrvc_module_name"}},
         {"MSRVC_NAME",            {"R_MICROSRVC_MAIN", "msrvc_name"}},
@@ -474,30 +491,28 @@ namespace irods::experimental::api::genquery
         {"COLL_ACCESS_NAME",     {"R_TOKN_MAIN_COLL", "token_name"}},
         {"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN_COLL", "token_namespace"}},
 
+        // TODO Permissions don't apply to resource?
         {"RESC_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
         {"RESC_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
         {"RESC_ACCESS_RESC_ID",  {"R_OBJT_ACCESS", "object_id"}},
         {"RESC_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
         {"RESC_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
 
+        // TODO Permissions don't apply to metadata?
         {"META_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
         {"META_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
         {"META_ACCESS_META_ID",  {"R_OBJT_ACCESS", "object_id"}},
         {"META_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
         {"META_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
 
-        {"RESC_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"RESC_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"RESC_ACCESS_RESC_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"RESC_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"RESC_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
-
+        // TODO Permissions don't apply to rules?
         {"RULE_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
         {"RULE_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
         {"RULE_ACCESS_RULE_ID",  {"R_OBJT_ACCESS", "object_id"}},
         {"RULE_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
         {"RULE_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
 
+        // TODO Permissions don't apply to microservices?
         {"MSRVC_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
         {"MSRVC_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
         {"MSRVC_ACCESS_MSRVC_ID", {"R_OBJT_ACCESS", "object_id"}},
@@ -535,8 +550,16 @@ namespace irods::experimental::api::genquery
     const std::map<std::string_view, std::string_view> table_alias_map{
         {"R_META_MAIN_COLL",    "R_META_MAIN R_META_MAIN_COLL"},
         {"R_META_MAIN_DATA",    "R_META_MAIN R_META_MAIN_DATA"},
+        {"R_META_MAIN_USER",    "R_META_MAIN R_META_MAIN_USER"},
+        {"R_META_MAIN_RESC",    "R_META_MAIN R_META_MAIN_RESC"},
         {"R_OBJT_METAMAP_COLL", "R_OBJT_METAMAP R_OBJT_METAMAP_COLL"},
-        {"R_OBJT_METAMAP_DATA", "R_OBJT_METAMAP R_OBJT_METAMAP_DATA"}
+        {"R_OBJT_METAMAP_DATA", "R_OBJT_METAMAP R_OBJT_METAMAP_DATA"},
+        {"R_OBJT_METAMAP_USER", "R_OBJT_METAMAP R_OBJT_METAMAP_USER"},
+        {"R_OBJT_METAMAP_RESC", "R_OBJT_METAMAP R_OBJT_METAMAP_RESC"},
+        {"R_OBJT_ACCESS_COLL",  "R_OBJT_ACCESS R_OBJT_ACCESS_COLL"},
+        {"R_OBJT_ACCESS_DATA",  "R_OBJT_ACCESS R_OBJT_ACCESS_DATA"},
+        {"R_TOKN_MAIN_COLL",    "R_TOKN_MAIN R_TOKN_MAIN_COLL"},
+        {"R_TOKN_MAIN_DATA",    "R_TOKN_MAIN R_TOKN_MAIN_DATA"},
     }; // table_alias_map
 
     // Defines the foreign key links between tables.
