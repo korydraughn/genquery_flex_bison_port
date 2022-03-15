@@ -5,11 +5,11 @@
 
 #include <boost/graph/adjacency_list.hpp>
 
-#include <set>
 #include <vector>
 #include <iterator>
 #include <string_view>
 #include <algorithm>
+#include <optional>
 
 namespace irods::experimental::genquery
 {
@@ -17,7 +17,7 @@ namespace irods::experimental::genquery
     using path_type = std::vector<VertexType>;
 
     template <typename VertexType>
-    using paths_type = std::set<path_type<VertexType>>;
+    using paths_type = std::vector<path_type<VertexType>>;
 
     template <typename GraphType, typename VertexType>
     auto compute_all_paths_from_source_helper(const GraphType& _graph,
@@ -28,7 +28,7 @@ namespace irods::experimental::genquery
         if (const auto e = std::end(_path);
             _path.size() > 1 && std::find(std::begin(_path), e, _src_vertex) != e)
         {
-            _paths.insert(_path);
+            _paths.push_back(_path);
             return;
         }
 
@@ -51,31 +51,6 @@ namespace irods::experimental::genquery
         return paths;
     } // compute_all_paths_from_source
 
-    template <typename VertexType, typename GraphType, typename TableNames>
-    auto to_table_joins(const paths_type<VertexType>& _paths,
-                        const GraphType& _graph,
-                        std::set<std::string>& _tables,
-                        const TableNames& _table_names)
-        -> std::vector<std::vector<std::string_view>>
-    {
-        std::vector<std::vector<std::string_view>> joins;
-        joins.reserve(_paths.size());
-
-        std::for_each(std::begin(_paths), std::end(_paths), [&_graph, &_tables, &_table_names, &joins](auto&& _p) {
-            joins.emplace_back();
-
-            for (decltype(_p.size()) i = 0; i < _p.size() - 1; ++i) {
-                if (const auto [edge, exists] = boost::edge(_p[i], _p[i + 1], _graph); exists) {
-                    _tables.insert(_table_names[_p[i]]);
-                    _tables.insert(_table_names[_p[i + 1]]);
-                    joins.back().push_back(_graph[edge].sql_join_condition);
-                }
-            }
-        });
-
-        return joins;
-    } // to_table_joins
-
     template <typename VertexType, typename Container>
     auto filter(const paths_type<VertexType>& _paths, const Container& _required_table_names)
         -> paths_type<VertexType>
@@ -95,7 +70,7 @@ namespace irods::experimental::genquery
             };
 
             if (std::all_of(std::begin(_required_table_names), std::end(_required_table_names), pred)) {
-                subset.insert(p);
+                subset.push_back(p);
             }
         }
 
@@ -103,13 +78,14 @@ namespace irods::experimental::genquery
     } // filter
 
     template <typename VertexType>
-    auto get_shortest_path(const paths_type<VertexType>& _paths) -> const path_type<VertexType>*
+    auto get_shortest_path(const paths_type<VertexType>& _paths)
+        -> const std::optional<path_type<VertexType>>
     {
         if (_paths.empty()) {
-            return nullptr;
+            return std::nullopt;
         }
 
-        const path_type<VertexType>* shortest_path = &*std::begin(_paths);
+        const auto* shortest_path = &*std::begin(_paths);
 
         for (auto iter = std::next(std::begin(_paths)); iter != std::end(_paths); ++iter) {
             if (iter->size() < shortest_path->size()) {
@@ -117,8 +93,29 @@ namespace irods::experimental::genquery
             }
         }
 
-        return shortest_path;
+        return *shortest_path;
     } // get_shortest_path
+
+    template <typename VertexType, typename GraphType, typename TableNames>
+    auto to_table_joins(const path_type<VertexType>& _path,
+                        const GraphType& _graph,
+                        std::vector<std::string>& _tables,
+                        const TableNames& _table_names)
+        -> std::vector<std::string_view>
+    {
+        std::vector<std::string_view> joins;
+        joins.reserve(_path.size() - 1);
+
+        for (decltype(_path.size()) i = 0; i < _path.size() - 1; ++i) {
+            if (const auto [edge, exists] = boost::edge(_path[i], _path[i + 1], _graph); exists) {
+                _tables.push_back(_table_names[_path[i]]);
+                _tables.push_back(_table_names[_path[i + 1]]);
+                joins.push_back(_graph[edge].sql_join_condition);
+            }
+        }
+
+        return joins;
+    } // to_table_joins
 } // namespace irods::experimental::genquery
 
 #endif // IRODS_GENQUERY_UTILITIES_HPP

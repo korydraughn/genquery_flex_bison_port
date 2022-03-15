@@ -174,12 +174,10 @@ namespace
 
 namespace irods::experimental::api::genquery
 {
-    //using log = irods::experimental::log;
-
     auto no_distinct_flag = false;
 
     std::vector<std::string> columns;
-    std::set<std::string> tables;
+    std::vector<std::string> tables;
     std::vector<std::string> from_aliases;
     std::vector<std::string> where_clauses;
     std::vector<std::string> processed_tables;
@@ -200,31 +198,23 @@ namespace irods::experimental::api::genquery
         }
     };
 
+    void add_table(std::vector<std::string>& _v, const std::string_view _table)
+    {
+        if (auto iter = std::find(std::begin(_v), std::end(_v), _table); iter == std::end(_v)) {
+            _v.push_back(_table.data());
+        }
+    }
+
     std::string sql(const Column& column)
     {
         const auto iter = column_name_mappings.find(column.name);
         
         if (iter != std::end(column_name_mappings)) {
             columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
-            tables.insert(iter->second.table);
+            add_table(tables, iter->second.table);
             return columns.back();
         }
 
-#if 0
-        const auto iter = column_table_alias_map.find(column.name);
-
-        if (iter == std::end(column_table_alias_map)) {
-            throw std::runtime_error{fmt::format("failed to find column named [{}]", column.name)};
-        }
-
-        const auto& tbl = std::get<0>(iter->second);
-        const auto& col = std::get<1>(iter->second);
-
-        add_table_if_applicable(tbl);
-        columns.push_back(col);
-
-        return fmt::format("{}.{}", tbl, col);
-#endif
         return "";
     }
 
@@ -368,7 +358,7 @@ namespace irods::experimental::api::genquery
             
             if (iter != std::end(column_name_mappings)) {
                 columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
-                tables.insert(iter->second.table);
+                add_table(tables, iter->second.table);
             }
         }
 
@@ -380,8 +370,12 @@ namespace irods::experimental::api::genquery
         sql(select.selections);
         sql(select.conditions);
 
-        auto sql_tables = fmt::format("tables  = [{}]\n", fmt::join(tables, ", "));
-        auto sql_columns = fmt::format("columns = [{}]\n", fmt::join(columns, ", "));
+        if (tables.empty()) {
+            return "EMPTY RESULTSET";
+        }
+
+        auto sql_tables = fmt::format("tables  = [\n\t{}\n]\n", fmt::join(tables, ",\n\t"));
+        auto sql_columns = fmt::format("columns = [\n\t{}\n]\n", fmt::join(columns, ",\n\t"));
 
         graph_type g{table_edges.data(),
                      table_edges.data() + table_edges.size(),
@@ -405,7 +399,7 @@ namespace irods::experimental::api::genquery
             fmt::print("  ({}, {})\n", g[src_vertex].table_name, g[dst_vertex].table_name);
         }
 
-        const auto paths = compute_all_paths_from_source(g, table_name_index(*std::begin(tables)));
+        const auto paths = compute_all_paths_from_source(g, table_name_index(tables[0]));
         fmt::print("All Paths:\n");
         for (auto&& p : paths) {
             fmt::print("  [{}]\n", fmt::join(p, ", "));
@@ -425,58 +419,46 @@ namespace irods::experimental::api::genquery
             fmt::print("  [{}]\n", fmt::join(p, ", "));
         }
 
-        const auto* shortest_path = irods::experimental::genquery::get_shortest_path(filtered_paths);
+        const auto shortest_path = irods::experimental::genquery::get_shortest_path(filtered_paths);
 
         if (shortest_path) {
             fmt::print("Shortest Filtered Path:\n");
             fmt::print("  [{}]\n", fmt::join(*shortest_path, ", "));
 
-            //const auto joins = to_table_joins(filtered_paths, g);
-            const auto joins = to_table_joins(std::set{*shortest_path}, g, tables, table_names);
+            const auto joins = to_table_joins(*shortest_path, g, tables, table_names);
             fmt::print("Table Joins:\n");
-            for (auto&& j : joins) {
-                fmt::print("  [{}]\n", fmt::join(j, ", "));
-            }
+            fmt::print("  [\n\t{}\n  ]\n", fmt::join(joins, ",\n\t"));
 
-            // Update the list of table names because producing the joins likely added
-            // additional tables.
-            std::set<std::string_view> table_aliases;
-            std::transform(std::begin(tables), std::end(tables), std::inserter(table_aliases, std::end(table_aliases)),
-                [](auto&& _table_name) -> std::string_view
-                {
-                    if (const auto iter = table_alias_map.find(_table_name); iter != std::end(table_alias_map)) {
-                        return iter->second;
+            const auto table_alias = table_alias_map.find(table_names[(*shortest_path)[0]]);
+            auto generated_sql = fmt::format("select distinct {} from {}", fmt::join(columns, ", "),
+                    table_alias != std::end(table_alias_map)
+                        ? table_alias->second
+                        : table_names[(*shortest_path)[0]]);
+
+            if (shortest_path->size() > 1) {
+                const auto& sp = *shortest_path;
+
+                for (decltype(sp.size()) i = 1; i < sp.size(); ++i) {
+                    const auto table_alias = table_alias_map.find(table_names[sp[i]]);
+                    const auto [edge, exists] = boost::edge(sp[i - 1], sp[i], g);
+
+                    if (!exists) {
+                        throw std::runtime_error{"Cannot construct SQL from GenQuery string."};
                     }
 
-                    return _table_name;
-                });
-            sql_tables = fmt::format("tables  = [{}]\n", fmt::join(table_aliases, ", "));
+                    generated_sql = fmt::format("{} inner join {} on {}",
+                                                generated_sql,
+                                                table_alias != std::end(table_alias_map)
+                                                    ? table_alias->second
+                                                    : table_names[sp[i]],
+                                                g[edge].sql_join_condition);
+                }
+            }
+
+            fmt::print("Generated SQL => {}\n", generated_sql);
         }
 
         return sql_tables + sql_columns;
     }
-
-#if 0
-=======================================================================================
-ORIGINAL GENQUERY
-
-select distinct R_DATA_MAIN.data_name
-    from  R_DATA_MAIN,
-          R_OBJT_METAMAP r_data_metamap,
-          R_META_MAIN    r_data_meta_main,
-          R_OBJT_METAMAP r_data_metamap2,
-          R_META_MAIN    r_data_meta_mn02
-
-    where r_data_meta_main.meta_attr_name = ? AND
-          r_data_meta_mn02.meta_attr_name = ? AND
-          R_DATA_MAIN.data_id     = r_data_metamap.object_id AND
-          r_data_metamap.meta_id  = r_data_meta_main.meta_id AND
-          r_data_metamap2.meta_id = r_data_meta_mn02.meta_id AND
-          R_DATA_MAIN.data_id     = r_data_metamap2.object_id
-
-    order by R_DATA_MAIN.data_name",
-
-=======================================================================================
-#endif
 } // namespace irods::experimental::api::genquery
 
