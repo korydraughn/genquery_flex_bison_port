@@ -189,7 +189,7 @@ namespace irods::experimental::api::genquery
         {"ZONE_NAME",           {"R_RESC_MAIN", "zone_name"}},
         {"TYPE_NAME",           {"R_RESC_MAIN", "resc_type_name"}},
         {"CLASS_NAME",          {"R_RESC_MAIN", "resc_class_name"}},
-        {"LOC",                 {"R_RESC_MAIN", "resc_net"}},
+        {"LOC",                 {"R_RESC_MAIN", "resc_net"}}, // TODO RESC_HOSTNAME?
         {"VAULT_PATH",          {"R_RESC_MAIN", "resc_def_path "}},
         {"FREE_SPACE",          {"R_RESC_MAIN", "free_space"}},
         {"FREE_SPACE_TIME",     {"R_RESC_MAIN", "free_space_ts"}},
@@ -239,16 +239,6 @@ namespace irods::experimental::api::genquery
         {"COLL_INFO1",       {"R_COLL_MAIN", "coll_info1"}},
         {"COLL_INFO2",       {"R_COLL_MAIN", "coll_info2"}},
 
-        // TODO Investigate these.
-        {"META_NAMESPACE_COLL",       {"R_META_MAIN", "meta_namespace"}},
-        {"META_NAMESPACE_DATA",       {"R_META_MAIN", "meta_namespace"}},
-        {"META_NAMESPACE_RESC",       {"R_META_MAIN", "meta_namespace"}},
-        {"META_NAMESPACE_RESC_GROUP", {"R_META_MAIN", "meta_namespace"}},
-        {"META_NAMESPACE_USER",       {"R_META_MAIN", "meta_namespace"}},
-        {"META_NAMESPACE_RULE",       {"R_META_MAIN", "meta_namespace"}},
-        {"META_NAMESPACE_MSRVC",      {"R_META_MAIN", "meta_namespace"}},
-        {"META_NAMESPACE_MET2",       {"R_META_MAIN", "meta_namespace"}},
-
         {"META_DATA_ATTR_NAME",   {"R_META_MAIN_DATA", "meta_attr_name"}},
         {"META_DATA_ATTR_VALUE",  {"R_META_MAIN_DATA", "meta_attr_value"}},
         {"META_DATA_ATTR_UNITS",  {"R_META_MAIN_DATA", "meta_attr_unit"}},
@@ -270,14 +260,6 @@ namespace irods::experimental::api::genquery
         {"META_RESC_CREATE_TIME", {"R_META_MAIN_RESC", "create_ts"}},
         {"META_RESC_MODIFY_TIME", {"R_META_MAIN_RESC", "modify_ts"}},
 
-        // TODO Should these be exposed given that resource groups aren't a thing anymore?
-        {"META_RESC_GROUP_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_RESC_GROUP_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_RESC_GROUP_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_RESC_GROUP_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_RESC_GROUP_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_RESC_GROUP_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
-
         {"META_USER_ATTR_NAME",   {"R_META_MAIN_USER", "meta_attr_name"}},
         {"META_USER_ATTR_VALUE",  {"R_META_MAIN_USER", "meta_attr_value"}},
         {"META_USER_ATTR_UNITS",  {"R_META_MAIN_USER", "meta_attr_unit"}},
@@ -285,31 +267,13 @@ namespace irods::experimental::api::genquery
         {"META_USER_CREATE_TIME", {"R_META_MAIN_USER", "create_ts"}},
         {"META_USER_MODIFY_TIME", {"R_META_MAIN_USER", "modify_ts"}},
 
-        // TODO Should metadata be attachable to rules?
-        // What is the use-case here?
-        {"META_RULE_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_RULE_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_RULE_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_RULE_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_RULE_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_RULE_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
-
-        // TODO Should metadata be attachable to microservices?
-        // What is the use-case here?
-        {"META_MSRVC_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_MSRVC_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_MSRVC_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_MSRVC_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_MSRVC_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_MSRVC_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
-
         // TODO What are these?
-        {"META_MET2_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
-        {"META_MET2_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
-        {"META_MET2_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
-        {"META_MET2_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
-        {"META_MET2_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
-        {"META_MET2_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
+        //{"META_MET2_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
+        //{"META_MET2_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
+        //{"META_MET2_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
+        //{"META_MET2_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
+        //{"META_MET2_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
+        //{"META_MET2_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
         {"USER_GROUP_ID",   {"R_USER_GROUP", "group_user_id"}},
         {"USER_GROUP_NAME", {"R_USER_MAIN", "user_name"}},
@@ -335,110 +299,12 @@ namespace irods::experimental::api::genquery
         {"TOKEN_VALUE3",    {"R_TOKN_MAIN", "token_value3"}},
         {"TOKEN_COMMENT",   {"R_TOKN_MAIN", "r_comment"}},
 
-        {"AUDIT_OBJ_ID",      {"R_OBJT_AUDIT", "object_id"}},
-        {"AUDIT_USER_ID",     {"R_OBJT_AUDIT", "user_id"}},
-        {"AUDIT_ACTION_ID",   {"R_OBJT_AUDIT", "action_id"}},
-        {"AUDIT_COMMENT",     {"R_OBJT_AUDIT", "r_comment"}},
-        {"AUDIT_CREATE_TIME", {"R_OBJT_AUDIT", "create_ts"}},
-        {"AUDIT_MODIFY_TIME", {"R_OBJT_AUDIT", "modify_ts"}},
-
         // TODO These likely need table alias?
+        // What is the difference between COLL_USER_ZONE and COLL_ZONE_NAME?
+        // Perhaps, COLL_USER_ZONE is the zone the user is part of while COLL_ZONE_NAME
+        // is the zone name the collection is associated with.
         {"COLL_USER_NAME", {"R_USER_MAIN", "user_name"}},
         {"COLL_USER_ZONE", {"R_USER_MAIN", "zone_name"}},
-
-        // TODO These likely need table alias?
-        {"RESC_USER_NAME", {"R_USER_MAIN", "user_name"}},
-        {"RESC_USER_ZONE", {"R_USER_MAIN", "zone_name"}},
-
-        // TODO Should these be exposed?
-        {"SL_HOST_NAME",   {"R_SERVER_LOAD", "host_name"}},
-        {"SL_RESC_NAME",   {"R_SERVER_LOAD", "resc_name"}},
-        {"SL_CPU_USED",    {"R_SERVER_LOAD", "cpu_used"}},
-        {"SL_MEM_USED",    {"R_SERVER_LOAD", "mem_used"}},
-        {"SL_SWAP_USED",   {"R_SERVER_LOAD", "swap_used"}},
-        {"SL_RUNQ_LOAD",   {"R_SERVER_LOAD", "runq_load"}},
-        {"SL_DISK_SPACE",  {"R_SERVER_LOAD", "disk_space"}},
-        {"SL_NET_INPUT",   {"R_SERVER_LOAD", "net_input"}},
-        {"SL_NET_OUTPUT",  {"R_SERVER_LOAD", "net_output"}},
-        {"SL_CREATE_TIME", {"R_SERVER_LOAD", "create_ts"}},
-
-        // TODO Should these be exposed?
-        {"SLD_RESC_NAME",   {"R_SERVER_LOAD_DIGEST", "resc_name"}},
-        {"SLD_LOAD_FACTOR", {"R_SERVER_LOAD_DIGEST", "load_factor"}},
-        {"SLD_CREATE_TIME", {"R_SERVER_LOAD_DIGEST", "create_ts"}},
-
-        {"RULE_ID",                   {"R_RULE_MAIN", "rule_id"}},
-        {"RULE_VERSION",              {"R_RULE_MAIN", "rule_version"}},
-        {"RULE_BASE_NAME",            {"R_RULE_MAIN", "rule_base_name"}},
-        {"RULE_NAME",                 {"R_RULE_MAIN", "rule_name"}},
-        {"RULE_EVENT",                {"R_RULE_MAIN", "rule_event"}},
-        {"RULE_CONDITION",            {"R_RULE_MAIN", "rule_condition"}},
-        {"RULE_BODY",                 {"R_RULE_MAIN", "rule_body"}},
-        {"RULE_RECOVERY",             {"R_RULE_MAIN", "rule_recovery"}},
-        {"RULE_STATUS",               {"R_RULE_MAIN", "rule_status"}},
-        {"RULE_OWNER_NAME",           {"R_RULE_MAIN", "rule_owner_name"}},
-        {"RULE_OWNER_ZONE",           {"R_RULE_MAIN", "rule_owner_zone"}},
-        {"RULE_DESCR_1",              {"R_RULE_MAIN", "rule_descr_1"}},
-        {"RULE_DESCR_2",              {"R_RULE_MAIN", "rule_descr_2"}},
-        {"RULE_INPUT_PARAMS",         {"R_RULE_MAIN", "input_params"}},
-        {"RULE_OUTPUT_PARAMS",        {"R_RULE_MAIN", "output_params"}},
-        {"RULE_DOLLAR_VARS",          {"R_RULE_MAIN", "dollar_vars"}},
-        {"RULE_ICAT_ELEMENTS",        {"R_RULE_MAIN", "icat_elements"}},
-        {"RULE_SIDEEFFECTS",          {"R_RULE_MAIN", "sideeffects"}},
-        {"RULE_COMMENT",              {"R_RULE_MAIN", "r_comment"}},
-        {"RULE_CREATE_TIME",          {"R_RULE_MAIN", "create_ts"}},
-        {"RULE_MODIFY_TIME",          {"R_RULE_MAIN", "modify_ts"}},
-
-        // TODO What are these? Should these be exposed?
-        {"RULE_BASE_MAP_VERSION",     {"R_RULE_BASE_MAP", "map_version"}},
-        {"RULE_BASE_MAP_PRIORITY",    {"R_RULE_BASE_MAP", "map_priority"}},
-        {"RULE_BASE_MAP_BASE_NAME",   {"R_RULE_BASE_MAP", "map_base_name"}},
-        {"RULE_BASE_MAP_OWNER_NAME",  {"R_RULE_BASE_MAP", "map_owner_name"}},
-        {"RULE_BASE_MAP_OWNER_ZONE",  {"R_RULE_BASE_MAP", "map_owner_zone"}},
-        {"RULE_BASE_MAP_COMMENT",     {"R_RULE_BASE_MAP", "r_comment"}},
-        {"RULE_BASE_MAP_CREATE_TIME", {"R_RULE_BASE_MAP", "create_ts"}},
-        {"RULE_BASE_MAP_MODIFY_TIME", {"R_RULE_BASE_MAP", "modify_ts"}},
-
-        // TODO What are these? Should these be exposed?
-        {"DVM_ID",                   {"R_RULE_DVM", "dvm_id"}},
-        {"DVM_VERSION",              {"R_RULE_DVM", "dvm_version"}},
-        {"DVM_BASE_NAME",            {"R_RULE_DVM", "dvm_base_name"}},
-        {"DVM_EXT_VAR_NAME",         {"R_RULE_DVM", "dvm_ext_var_name"}},
-        {"DVM_CONDITION",            {"R_RULE_DVM", "dvm_condition"}},
-        {"DVM_INT_MAP_PATH",         {"R_RULE_DVM", "dvm_int_map_path"}},
-        {"DVM_STATUS",               {"R_RULE_DVM", "dvm_status"}},
-        {"DVM_OWNER_NAME",           {"R_RULE_DVM", "dvm_owner_name"}},
-        {"DVM_OWNER_ZONE",           {"R_RULE_DVM", "dvm_owner_zone"}},
-        {"DVM_COMMENT",              {"R_RULE_DVM", "r_comment"}},
-        {"DVM_CREATE_TIME",          {"R_RULE_DVM", "create_ts"}},
-        {"DVM_MODIFY_TIME",          {"R_RULE_DVM", "modify_ts"}},
-        {"DVM_BASE_MAP_VERSION",     {"R_RULE_DVM_MAP", "map_dvm_version"}},
-        {"DVM_BASE_MAP_BASE_NAME",   {"R_RULE_DVM_MAP", "map_dvm_base_name"}},
-        {"DVM_BASE_MAP_OWNER_NAME",  {"R_RULE_DVM_MAP", "map_owner_name"}},
-        {"DVM_BASE_MAP_OWNER_ZONE",  {"R_RULE_DVM_MAP", "map_owner_zone"}},
-        {"DVM_BASE_MAP_COMMENT",     {"R_RULE_DVM_MAP", "r_comment"}},
-        {"DVM_BASE_MAP_CREATE_TIME", {"R_RULE_DVM_MAP", "create_ts"}},
-        {"DVM_BASE_MAP_MODIFY_TIME", {"R_RULE_DVM_MAP", "modify_ts"}},
-
-        // TODO What are these? Should these be exposed?
-        {"FNM_ID",                   {"R_RULE_FNM", "fnm_id"}},
-        {"FNM_VERSION",              {"R_RULE_FNM", "fnm_version"}},
-        {"FNM_BASE_NAME",            {"R_RULE_FNM", "fnm_base_name"}},
-        {"FNM_EXT_FUNC_NAME",        {"R_RULE_FNM", "fnm_ext_func_name"}},
-        {"FNM_INT_FUNC_NAME",        {"R_RULE_FNM", "fnm_int_func_name"}},
-        {"FNM_STATUS",               {"R_RULE_FNM", "fnm_status"}},
-        {"FNM_OWNER_NAME",           {"R_RULE_FNM", "fnm_owner_name"}},
-        {"FNM_OWNER_ZONE",           {"R_RULE_FNM", "fnm_owner_zone"}},
-        {"FNM_COMMENT",              {"R_RULE_FNM", "r_comment"}},
-        {"FNM_CREATE_TIME",          {"R_RULE_FNM", "create_ts"}},
-        {"FNM_MODIFY_TIME",          {"R_RULE_FNM", "modify_ts"}},
-        {"FNM_BASE_MAP_VERSION",     {"R_RULE_FNM_MAP", "map_fnm_version"}},
-        {"FNM_BASE_MAP_BASE_NAME",   {"R_RULE_FNM_MAP", "map_fnm_base_name"}},
-        {"FNM_BASE_MAP_OWNER_NAME",  {"R_RULE_FNM_MAP", "map_owner_name"}},
-        {"FNM_BASE_MAP_OWNER_ZONE",  {"R_RULE_FNM_MAP", "map_owner_zone"}},
-        {"FNM_BASE_MAP_COMMENT",     {"R_RULE_FNM_MAP", "r_comment"}},
-        {"FNM_BASE_MAP_CREATE_TIME", {"R_RULE_FNM_MAP", "create_ts"}},
-        {"FNM_BASE_MAP_MODIFY_TIME", {"R_RULE_FNM_MAP", "modify_ts"}},
 
         {"QUOTA_USER_ID",           {"R_QUOTA_MAIN", "user_id"}},
         {"QUOTA_RESC_ID",           {"R_QUOTA_MAIN", "resc_id"}},
@@ -455,30 +321,6 @@ namespace irods::experimental::api::genquery
         {"QUOTA_USER_ZONE",         {"R_USER_MAIN", "zone_name"}},
         {"QUOTA_RESC_NAME",         {"R_RESC_MAIN", "resc_name"}},
 
-        // TODO What are these? Should these be exposed?
-        {"MSRVC_ID",              {"R_MICROSRVC_MAIN", "msrvc_id"}},
-        {"MSRVC_MODULE_NAME",     {"R_MICROSRVC_MAIN", "msrvc_module_name"}},
-        {"MSRVC_NAME",            {"R_MICROSRVC_MAIN", "msrvc_name"}},
-        {"MSRVC_SIGNATURE",       {"R_MICROSRVC_MAIN", "msrvc_signature"}},
-        {"MSRVC_DOXYGEN",         {"R_MICROSRVC_MAIN", "msrvc_doxygen"}},
-        {"MSRVC_VARIATIONS",      {"R_MICROSRVC_MAIN", "msrvc_variations"}},
-        {"MSRVC_OWNER_NAME",      {"R_MICROSRVC_MAIN", "msrvc_owner_name"}},
-        {"MSRVC_OWNER_ZONE",      {"R_MICROSRVC_MAIN", "msrvc_owner_zone"}},
-        {"MSRVC_COMMENT",         {"R_MICROSRVC_MAIN", "r_comment"}},
-        {"MSRVC_CREATE_TIME",     {"R_MICROSRVC_MAIN", "create_ts"}},
-        {"MSRVC_MODIFY_TIME",     {"R_MICROSRVC_MAIN", "modify_ts"}},
-        {"MSRVC_VERSION",         {"R_MICROSRVC_VER", "msrvc_version"}},
-        {"MSRVC_HOST",            {"R_MICROSRVC_VER", "msrvc_host"}},
-        {"MSRVC_LOCATION",        {"R_MICROSRVC_VER", "msrvc_location"}},
-        {"MSRVC_LANGUAGE",        {"R_MICROSRVC_VER", "msrvc_language"}},
-        {"MSRVC_TYPE_NAME",       {"R_MICROSRVC_VER", "msrvc_type_name"}},
-        {"MSRVC_STATUS",          {"R_MICROSRVC_VER", "msrvc_status"}},
-        {"MSRVC_VER_OWNER_NAME",  {"R_MICROSRVC_VER", "msrvc_owner_name"}},
-        {"MSRVC_VER_OWNER_ZONE",  {"R_MICROSRVC_VER", "msrvc_owner_zone"}},
-        {"MSRVC_VER_COMMENT",     {"R_MICROSRVC_VER", "r_comment"}},
-        {"MSRVC_VER_CREATE_TIME", {"R_MICROSRVC_VER", "create_ts"}},
-        {"MSRVC_VER_MODIFY_TIME", {"R_MICROSRVC_VER", "modify_ts"}},
-
         {"DATA_ACCESS_TYPE",     {"R_OBJT_ACCESS_DATA", "access_type_id"}},
         {"DATA_ACCESS_USER_ID",  {"R_OBJT_ACCESS_DATA", "user_id"}},
         {"DATA_ACCESS_DATA_ID",  {"R_OBJT_ACCESS_DATA", "object_id"}},
@@ -490,34 +332,6 @@ namespace irods::experimental::api::genquery
         {"COLL_ACCESS_COLL_ID",  {"R_OBJT_ACCESS_COLL", "object_id"}},
         {"COLL_ACCESS_NAME",     {"R_TOKN_MAIN_COLL", "token_name"}},
         {"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN_COLL", "token_namespace"}},
-
-        // TODO Permissions don't apply to resource?
-        {"RESC_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"RESC_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"RESC_ACCESS_RESC_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"RESC_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"RESC_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
-
-        // TODO Permissions don't apply to metadata?
-        {"META_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"META_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"META_ACCESS_META_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"META_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"META_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
-
-        // TODO Permissions don't apply to rules?
-        {"RULE_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"RULE_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"RULE_ACCESS_RULE_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"RULE_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"RULE_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
-
-        // TODO Permissions don't apply to microservices?
-        {"MSRVC_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"MSRVC_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"MSRVC_ACCESS_MSRVC_ID", {"R_OBJT_ACCESS", "object_id"}},
-        {"MSRVC_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"MSRVC_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
 
         {"TICKET_ID",                      {"R_TICKET_MAIN", "ticket_id"}},
         {"TICKET_STRING",                  {"R_TICKET_MAIN", "ticket_string"}},
