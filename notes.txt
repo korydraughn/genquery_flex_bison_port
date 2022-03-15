@@ -4,6 +4,12 @@ Q. What can metadata be applied to?
     - collections
     - resources
     - users
+    
+    Perhaps we allow metadata attached to them.
+
+    - zones?
+    - groups?
+    - specific queries?
 
 Q. Does it make sense to accept combinations of these entities?
 
@@ -16,6 +22,8 @@ Q. Should metadata be attachable to the following?
 
     - Rules
     - Microservices
+
+    Terrell: Doesn't make a lot of sense.
 
 Q. Should table aliases get links to other tables just like their non-alias forms?
    For example, we have R_DATA_MAIN and R_DATA_MAIN_META. Should R_DATA_MAIN_META be
