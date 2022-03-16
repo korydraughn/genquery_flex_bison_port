@@ -132,11 +132,35 @@ namespace irods::experimental::api::genquery
         ConditionExpression expression;
     };
 
+    struct logical_and;
+    struct logical_or;
+    struct logical_grouping;
+
+    using condition_type = boost::variant<logical_and,
+                                          logical_or,
+                                          logical_grouping,
+                                          Condition>;
+
     // clang-format off
     using Selection  = boost::variant<SelectFunction, Column>;
     using Selections = std::vector<Selection>;
-    using Conditions = std::vector<Condition>;
+    using Conditions = std::vector<condition_type>;
     // clang-format on
+
+    struct logical_and
+    {
+        Condition condition;
+    };
+
+    struct logical_or
+    {
+        Condition condition;
+    };
+
+    struct logical_grouping
+    {
+        Conditions conditions;
+    };
 
     struct Select {
         Select() = default;
@@ -149,3 +173,4 @@ namespace irods::experimental::api::genquery
 } // namespace irods::experimental::api::genquery
 
 #endif // IRODS_GENQUERY_AST_TYPES_HPP
+

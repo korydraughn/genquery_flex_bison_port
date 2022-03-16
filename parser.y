@@ -81,6 +81,8 @@ While these directives support specifying a semantic type, Bison recommends not
 doing that and using these directives to specify precedence and associativity
 rules only.
 */
+%left OR
+%left AND
 %precedence CONDITION_NOT
 
 %type<gq::Selections> selections;
@@ -118,7 +120,9 @@ select_function:
 
 conditions:
     condition  { $$ = gq::Conditions{std::move($1)}; }
-  | conditions AND condition  { $1.push_back(std::move($3)); std::swap($$, $1); }
+  | conditions AND condition  { $1.push_back(gq::logical_and{std::move($3)}); std::swap($$, $1); }
+  | conditions OR condition  { $1.push_back(gq::logical_or{std::move($3)}); std::swap($$, $1); }
+  | PAREN_OPEN conditions PAREN_CLOSE  { $$ = gq::Conditions{gq::logical_grouping{std::move($2)}}; }
 
 condition:
     column condition_expression  { $$ = gq::Condition(std::move($1), std::move($2)); }
@@ -136,7 +140,6 @@ condition_expression:
   | PARENT_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionParentOf(std::move($3)); }
   | BEGINNING_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionBeginningOf(std::move($3)); }
   | CONDITION_NOT condition_expression  { $$ = gq::ConditionOperator_Not(std::move($2)); }
-  | PAREN_OPEN condition_expression PAREN_CLOSE  { $$ = std::move($2); }
 
 list_of_string_literals:
     STRING_LITERAL  { $$ = std::vector<std::string>{std::move($1)}; }

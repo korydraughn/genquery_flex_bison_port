@@ -344,9 +344,7 @@ namespace irods::experimental::api::genquery
 
     std::string sql(const Condition& condition)
     {
-        std::string ret = sql(condition.column);
-        ret += boost::apply_visitor(sql_visitor(), condition.expression);
-        return ret;
+        return fmt::format("{}{}", sql(condition.column), boost::apply_visitor(sql_visitor(), condition.expression));
     }
 
     std::string sql(const Conditions& conditions)
@@ -354,21 +352,44 @@ namespace irods::experimental::api::genquery
         std::string ret;
 
         for (auto&& condition : conditions) {
+#if 1
+            ret += fmt::format("  condition => [{}]\n", boost::apply_visitor(sql_visitor(), condition));
+#else
             const auto iter = column_name_mappings.find(condition.column.name);
             
             if (iter != std::end(column_name_mappings)) {
                 columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
                 add_table(tables, iter->second.table);
             }
+#endif
         }
 
         return ret;
     }
 
+    std::string sql(const logical_and& condition)
+    {
+        return fmt::format("and {}", sql(condition.condition));
+    }
+
+    std::string sql(const logical_or& condition)
+    {
+        return fmt::format("or {}", sql(condition.condition));
+    }
+
+    std::string sql(const logical_grouping& condition)
+    {
+        return fmt::format("({})", sql(condition.conditions));
+    }
+
     std::string sql(const Select& select)
     {
         sql(select.selections);
-        sql(select.conditions);
+        const auto conds = sql(select.conditions);
+
+        fmt::print("sql(select.conditions):\n{}", conds);
+
+        return "TESTING CONDITIONS ...\n";
 
         if (tables.empty()) {
             return "EMPTY RESULTSET";
