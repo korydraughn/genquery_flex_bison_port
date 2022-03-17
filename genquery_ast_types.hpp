@@ -149,12 +149,12 @@ namespace irods::experimental::api::genquery
 
     struct logical_and
     {
-        Condition condition;
+        Conditions condition;
     };
 
     struct logical_or
     {
-        Condition condition;
+        Conditions condition;
     };
 
     struct logical_grouping

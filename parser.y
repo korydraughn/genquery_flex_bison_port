@@ -120,8 +120,8 @@ select_function:
 
 conditions:
     condition  { $$ = gq::Conditions{std::move($1)}; }
-  | conditions AND condition  { $1.push_back(gq::logical_and{std::move($3)}); std::swap($$, $1); }
-  | conditions OR condition  { $1.push_back(gq::logical_or{std::move($3)}); std::swap($$, $1); }
+  | conditions AND conditions  { $1.push_back(gq::logical_and{std::move($3)}); std::swap($$, $1); }
+  | conditions OR conditions  { $1.push_back(gq::logical_or{std::move($3)}); std::swap($$, $1); }
   | PAREN_OPEN conditions PAREN_CLOSE  { $$ = gq::Conditions{gq::logical_grouping{std::move($2)}}; }
 
 condition:
