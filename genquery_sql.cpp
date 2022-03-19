@@ -176,12 +176,12 @@ namespace
 namespace irods::experimental::api::genquery
 {
     auto no_distinct_flag = false;
+    auto in_select_clause = false;
 
+    std::vector<std::string> select_columns;
     std::vector<std::string> columns;
     std::vector<std::string> tables;
-    std::vector<std::string> from_aliases;
-    std::vector<std::string> where_clauses;
-    std::vector<std::string> processed_tables;
+    std::vector<std::string> values;
 
     template <typename Iterable>
     std::string to_string(const Iterable& iterable)
@@ -212,7 +212,13 @@ namespace irods::experimental::api::genquery
         
         if (iter != std::end(column_name_mappings)) {
             columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
+
+            if (in_select_clause) {
+                select_columns.push_back(columns.back());
+            }
+
             add_table(tables, iter->second.table);
+
             return columns.back();
         }
 
@@ -228,8 +234,14 @@ namespace irods::experimental::api::genquery
         
         if (iter != std::end(column_name_mappings)) {
             columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
+
+            if (in_select_clause) {
+                select_columns.push_back(fmt::format("{}({})", select_function.name, columns.back()));
+            }
+
             add_table(tables, iter->second.table);
-            return fmt::format("{}({})", select_function.name, columns.back());
+
+            return select_columns.back();
         }
 
         // TODO Is this the error case? Most likely.
@@ -240,6 +252,18 @@ namespace irods::experimental::api::genquery
 
     std::string sql(const Selections& selections)
     {
+        struct restore_value {
+            bool* const value = &in_select_clause;
+            ~restore_value() { *value = false; }
+        } tmp;
+
+        // Provides additional context around the processing of the select-clause's column list.
+        //
+        // This specifically helps the parser determine what should be included in the select
+        // clause's column list. This is necessary because the Column data type is used in multiple
+        // bison parser rules.
+        in_select_clause = true;
+
         tables.clear();
 
         if (selections.empty()) {
@@ -257,84 +281,58 @@ namespace irods::experimental::api::genquery
 
     std::string sql(const ConditionOperator_Not& op_not)
     {
-        //return fmt::format(" not {}", boost::apply_visitor(sql_visitor(), op_not.expression));
-        return " not ?";
+        return fmt::format(" not {}", boost::apply_visitor(sql_visitor(), op_not.expression));
     }
 
     std::string sql(const ConditionNotEqual& not_equal)
     {
-        //std::string ret{" != "};
-        //ret += "'";
-        //ret += not_equal.string_literal;
-        //ret += "'";
-        //return ret;
+        values.push_back(not_equal.string_literal);
         return " != ?";
     }
 
     std::string sql(const ConditionEqual& equal)
     {
-        //std::string ret{" = "};
-        //ret += "'";
-        //ret += equal.string_literal;
-        //ret += "'";
-        //return ret;
+        values.push_back(equal.string_literal);
         return " = ?";
     }
 
     std::string sql(const ConditionLessThan& less_than)
     {
-        //std::string ret{" < "};
-        //ret += "'";
-        //ret += less_than.string_literal;
-        //ret += "'";
-        //return ret;
+        values.push_back(less_than.string_literal);
         return " < ?";
     }
 
     std::string sql(const ConditionLessThanOrEqualTo& less_than_or_equal_to)
     {
-        //std::string ret{" <= "};
-        //ret += "'";
-        //ret += less_than_or_equal_to.string_literal;
-        //ret += "'";
-        //return ret;
+        values.push_back(less_than_or_equal_to.string_literal);
         return " <= ?";
     }
 
     std::string sql(const ConditionGreaterThan& greater_than)
     {
-        //std::string ret{" > "};
-        //ret += "'";
-        //ret += greater_than.string_literal;
-        //ret += "'";
-        //return ret;
+        values.push_back(greater_than.string_literal);
         return " > ?";
     }
 
     std::string sql(const ConditionGreaterThanOrEqualTo& greater_than_or_equal_to)
     {
-        //std::string ret{" >= "};
-        //ret += greater_than_or_equal_to.string_literal;
-        //return ret;
+        values.push_back(greater_than_or_equal_to.string_literal);
         return " >= ?";
     }
 
     std::string sql(const ConditionBetween& between)
     {
-        //std::string ret{" between '"};
-        //ret += between.low;
-        //ret += "' and '";
-        //ret += between.high;
-        //ret += "'";
-        //return ret;
+        values.push_back(between.low);
+        values.push_back(between.high);
         return " between ? and ?";
     }
 
     std::string sql(const ConditionIn& in)
     {
-        //std::string ret{" in "};
-        //ret += to_string(in.list_of_string_literals);
-        //return ret;
+        values.insert(std::end(values),
+                      std::begin(in.list_of_string_literals),
+                      std::end(in.list_of_string_literals));
+
         struct
         {
             using result_type = std::string_view;
@@ -351,26 +349,19 @@ namespace irods::experimental::api::genquery
 
     std::string sql(const ConditionLike& like)
     {
-        //std::string ret{" like '"};
-        //ret += like.string_literal;
-        //ret += "'";
-        //return ret;
+        values.push_back(like.string_literal);
         return " like ?";
     }
 
     std::string sql(const ConditionParentOf& parent_of)
     {
-        //std::string ret{"parent_of"};
-        //ret += parent_of.string_literal;
-        //return ret;
+        values.push_back(parent_of.string_literal);
         return " parent_of ?"; // TODO Is this valid SQL?
     }
 
     std::string sql(const ConditionBeginningOf& beginning_of)
     {
-        //std::string ret{"beginning_of"};
-        //ret += beginning_of.string_literal;
-        //return ret;
+        values.push_back(beginning_of.string_literal);
         return " beginning_of ?"; // TODO Is this valid SQL?
     }
 
@@ -384,17 +375,7 @@ namespace irods::experimental::api::genquery
         std::string ret;
 
         for (auto&& condition : conditions) {
-#if 1
-            //ret += fmt::format("  condition => [{}]\n", boost::apply_visitor(sql_visitor(), condition));
             ret += boost::apply_visitor(sql_visitor(), condition);
-#else
-            const auto iter = column_name_mappings.find(condition.column.name);
-            
-            if (iter != std::end(column_name_mappings)) {
-                columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
-                add_table(tables, iter->second.table);
-            }
-#endif
         }
 
         return ret;
@@ -423,11 +404,6 @@ namespace irods::experimental::api::genquery
         if (tables.empty()) {
             return "EMPTY RESULTSET";
         }
-
-#ifdef IRODS_GENQUERY_ENABLE_DEBUG
-        auto sql_tables = fmt::format("tables  = [\n\t{}\n]\n", fmt::join(tables, ",\n\t"));
-        auto sql_columns = fmt::format("columns = [\n\t{}\n]\n", fmt::join(columns, ",\n\t"));
-#endif
 
         graph_type g{table_edges.data(),
                      table_edges.data() + table_edges.size(),
@@ -492,7 +468,9 @@ namespace irods::experimental::api::genquery
 #endif
 
             const auto table_alias = table_alias_map.find(table_names[(*shortest_path)[0]]);
-            auto generated_sql = fmt::format("select distinct {} from {}", fmt::join(columns, ", "),
+            auto generated_sql = fmt::format("select {}{} from {}",
+                    select.no_distinct ? "" : "distinct ",
+                    fmt::join(select_columns, ", "),
                     table_alias != std::end(table_alias_map)
                         ? table_alias->second
                         : table_names[(*shortest_path)[0]]);
@@ -517,21 +495,20 @@ namespace irods::experimental::api::genquery
                 }
             }
 
-            //fmt::print("Generated SQL => {}\n", generated_sql);
-            //fmt::print("Generated SQL Conditionals => {}\n", conds);
-
             if (!conds.empty()) {
-                return fmt::format("{} where {}", generated_sql, conds);
+                generated_sql += fmt::format(" where {}", conds);
+            }
+
+            if (!select.order_by.empty()) {
+                // All columns in the order by clause must exist in the list of columns to project.
+                // TODO Replace all columns with real table names.
+                generated_sql += fmt::format(" order by {}", fmt::join(select.order_by, ", "));
             }
 
             return generated_sql;
         }
 
-#ifdef IRODS_GENQUERY_ENABLE_DEBUG
-        return sql_tables + sql_columns;
-#else
         return "";
-#endif
     }
 } // namespace irods::experimental::api::genquery
 

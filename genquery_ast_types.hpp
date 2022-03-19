@@ -142,9 +142,10 @@ namespace irods::experimental::api::genquery
                                           Condition>;
 
     // clang-format off
-    using Selection  = boost::variant<SelectFunction, Column>;
-    using Selections = std::vector<Selection>;
-    using Conditions = std::vector<condition_type>;
+    using Selection     = boost::variant<SelectFunction, Column>;
+    using Selections    = std::vector<Selection>;
+    using Conditions    = std::vector<condition_type>;
+    using order_by_type = std::vector<std::string>;
     // clang-format on
 
     struct logical_and
@@ -164,10 +165,18 @@ namespace irods::experimental::api::genquery
 
     struct Select {
         Select() = default;
+
         Select(Selections selections, Conditions conditions)
-            : selections(std::move(selections)), conditions(std::move(conditions)) {}
+            : selections(std::move(selections))
+            , conditions(std::move(conditions))
+            , order_by{}
+            , no_distinct{}
+        {
+        }
+
         Selections selections;
         Conditions conditions;
+        std::vector<std::string> order_by;
         bool no_distinct;
     };
 } // namespace irods::experimental::api::genquery

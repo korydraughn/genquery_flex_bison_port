@@ -93,16 +93,25 @@ rules only.
 %type<gq::Condition> condition;
 %type<gq::ConditionExpression> condition_expression;
 %type<std::vector<std::string>> list_of_string_literals;
+%type<std::vector<std::string>> list_of_identifiers;
+%type<std::vector<std::string>> order_by;
 
-%start select /* Defines where grammar starts */
+%start genquery /* Defines where grammar starts */
 
 %%
+
+genquery:
+    select
+  | select order_by  { std::swap(wrapper._select.order_by, $2); }
 
 select:
     SELECT selections  { std::swap(wrapper._select.selections, $2); }
   | SELECT selections WHERE conditions  { std::swap(wrapper._select.selections, $2); std::swap(wrapper._select.conditions, $4); }
   | SELECT NO_DISTINCT selections  { wrapper._select.no_distinct = true; std::swap(wrapper._select.selections, $3); }
   | SELECT NO_DISTINCT selections WHERE conditions  { wrapper._select.no_distinct = true; std::swap(wrapper._select.selections, $3); std::swap(wrapper._select.conditions, $5); }
+
+order_by:
+    ORDER BY list_of_identifiers  { std::swap($$, $3); }
 
 selections:
     selection  { $$ = gq::Selections{std::move($1)}; }
@@ -144,6 +153,10 @@ condition_expression:
 list_of_string_literals:
     STRING_LITERAL  { $$ = std::vector<std::string>{std::move($1)}; }
   | list_of_string_literals COMMA STRING_LITERAL  { $1.push_back(std::move($3)); std::swap($$, $1); }
+
+list_of_identifiers:
+    IDENTIFIER  { $$ = std::vector<std::string>{std::move($1)}; }
+  | list_of_identifiers COMMA IDENTIFIER  { $1.push_back(std::move($3)); std::swap($$, $1); }
 
 %%
 
