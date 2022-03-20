@@ -252,6 +252,7 @@ namespace irods::experimental::api::genquery
 
     std::string sql(const Selections& selections)
     {
+        // TODO Replace with at_scope_exit.
         struct restore_value {
             bool* const value = &in_select_clause;
             ~restore_value() { *value = false; }
@@ -270,13 +271,11 @@ namespace irods::experimental::api::genquery
             throw std::runtime_error{"selections are empty"};
         }
 
-        std::string ret;
-
         for (auto&& selection : selections) {
-            auto sel = boost::apply_visitor(sql_visitor(), selection);
+            boost::apply_visitor(sql_visitor(), selection);
         }
 
-        return ret;
+        return "";
     }
 
     std::string sql(const ConditionOperator_Not& op_not)
