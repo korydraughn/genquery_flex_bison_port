@@ -498,10 +498,12 @@ namespace irods::experimental::api::genquery
                 generated_sql += fmt::format(" where {}", conds);
             }
 
-            if (!select.order_by.empty()) {
+            if (!select.order_by.columns.empty()) {
                 // All columns in the order by clause must exist in the list of columns to project.
                 // TODO Replace all columns with real table names.
-                generated_sql += fmt::format(" order by {}", fmt::join(select.order_by, ", "));
+                generated_sql += fmt::format(" order by {} {}",
+                                             fmt::join(select.order_by.columns, ", "),
+                                             select.order_by.ascending_order ? "asc" : "desc");
             }
 
             return generated_sql;

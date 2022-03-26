@@ -163,6 +163,12 @@ namespace irods::experimental::api::genquery
         Conditions conditions;
     };
 
+    struct order_by
+    {
+        std::vector<std::string> columns;
+        bool ascending_order = true;
+    }; // class order_by
+
     struct Select {
         Select() = default;
 
@@ -176,7 +182,7 @@ namespace irods::experimental::api::genquery
 
         Selections selections;
         Conditions conditions;
-        std::vector<std::string> order_by;
+        order_by order_by;
         bool no_distinct;
     };
 } // namespace irods::experimental::api::genquery

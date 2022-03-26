@@ -29,6 +29,8 @@
 (?i:no-distinct)       return gq::Parser::make_NO_DISTINCT(gq::location());
 (?i:order)             return gq::Parser::make_ORDER(gq::location());
 (?i:by)                return gq::Parser::make_BY(gq::location());
+(?i:asc)               return gq::Parser::make_ASC(gq::location());
+(?i:desc)              return gq::Parser::make_DESC(gq::location());
 "="                    return gq::Parser::make_EQUAL(gq::location());
 "!="                   return gq::Parser::make_NOT_EQUAL(gq::location());
 "<>"                   return gq::Parser::make_NOT_EQUAL(gq::location());

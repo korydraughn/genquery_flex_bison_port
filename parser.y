@@ -65,7 +65,7 @@ This option causes make_* functions to be generated for each token kind.
 %token SELECT NO_DISTINCT WHERE AND OR COMMA PAREN_OPEN PAREN_CLOSE
 %token BETWEEN EQUAL NOT_EQUAL BEGINNING_OF LIKE IN PARENT_OF
 %token LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
-%token CONDITION_NOT ORDER BY
+%token CONDITION_NOT ORDER BY ASC DESC
 %token END_OF_INPUT 0
 
 /*
@@ -87,6 +87,7 @@ rules only.
 
 %type<gq::Selections> selections;
 %type<gq::Conditions> conditions;
+%type<gq::order_by> order_by;
 %type<gq::Selection> selection;
 %type<gq::Column> column;
 %type<gq::SelectFunction> select_function;
@@ -94,7 +95,6 @@ rules only.
 %type<gq::ConditionExpression> condition_expression;
 %type<std::vector<std::string>> list_of_string_literals;
 %type<std::vector<std::string>> list_of_identifiers;
-%type<std::vector<std::string>> order_by;
 
 %start genquery /* Defines where grammar starts */
 
@@ -111,7 +111,9 @@ select:
   | SELECT NO_DISTINCT selections WHERE conditions  { wrapper._select.no_distinct = true; std::swap(wrapper._select.selections, $3); std::swap(wrapper._select.conditions, $5); }
 
 order_by:
-    ORDER BY list_of_identifiers  { std::swap($$, $3); }
+    ORDER BY list_of_identifiers  { std::swap($$.columns, $3); }
+  | ORDER BY list_of_identifiers ASC { std::swap($$.columns, $3); }
+  | ORDER BY list_of_identifiers DESC { std::swap($$.columns, $3); $$.ascending_order = false; }
 
 selections:
     selection  { $$ = gq::Selections{std::move($1)}; }
