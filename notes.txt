@@ -5,7 +5,7 @@ Q. What can metadata be applied to?
     - resources
     - users
     
-    Perhaps we allow metadata attached to them.
+    Perhaps we allow metadata to be attached to the following as well.
 
     - zones?
     - groups?

@@ -208,7 +208,7 @@ namespace irods::experimental::api::genquery
         {"TICKET_OWNER_NAME",              {"R_USER_MAIN", "user_name"}},
         {"TICKET_OWNER_ZONE",              {"R_USER_MAIN", "zone_name"}},
         {"TICKET_DATA_COLL_NAME",          {"R_COLL_MAIN", "coll_name"}} // Includes join between R_DATA_MAIN and R_COLL_MAIN.
-    }; // column_table_alias_map
+    }; // column_name_mappings
 
     const std::map<std::string_view, std::string_view> table_alias_map{
         {"R_META_MAIN_COLL",    "R_META_MAIN R_META_MAIN_COLL"},
@@ -222,7 +222,7 @@ namespace irods::experimental::api::genquery
         {"R_OBJT_ACCESS_COLL",  "R_OBJT_ACCESS R_OBJT_ACCESS_COLL"},
         {"R_OBJT_ACCESS_DATA",  "R_OBJT_ACCESS R_OBJT_ACCESS_DATA"},
         {"R_TOKN_MAIN_COLL",    "R_TOKN_MAIN R_TOKN_MAIN_COLL"},
-        {"R_TOKN_MAIN_DATA",    "R_TOKN_MAIN R_TOKN_MAIN_DATA"},
+        {"R_TOKN_MAIN_DATA",    "R_TOKN_MAIN R_TOKN_MAIN_DATA"}
     }; // table_alias_map
 } // namespace irods::experemental::api::genquery
 

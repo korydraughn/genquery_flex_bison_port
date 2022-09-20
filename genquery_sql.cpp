@@ -404,6 +404,9 @@ namespace irods::experimental::api::genquery
             return "EMPTY RESULTSET";
         }
 
+        // TODO Handle special case where the user only queries columns from a
+        // single table (e.g. DATA_NAME, DATA_ID, DATA_REPL_NUM).
+
         graph_type g{table_edges.data(),
                      table_edges.data() + table_edges.size(),
                      table_names.size()};
@@ -417,6 +420,7 @@ namespace irods::experimental::api::genquery
         for (auto [iter, last] = boost::edges(g); iter != last; ++iter) {
             g[*iter].sql_join_condition = table_joins[table_edges.size() - std::distance(iter, last)];
         }
+#define IRODS_GENQUERY_ENABLE_DEBUG
 
 #ifdef IRODS_GENQUERY_ENABLE_DEBUG
         // Print the list of edges.
