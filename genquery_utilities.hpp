@@ -4,6 +4,7 @@
 #include "edge_property.hpp"
 
 #include <boost/graph/adjacency_list.hpp>
+#include <fmt/format.h>
 
 #include <vector>
 #include <iterator>
@@ -116,6 +117,17 @@ namespace irods::experimental::genquery
 
         return joins;
     } // to_table_joins
+
+    inline auto generate_table_alias(bool _reset_id = false) -> std::string
+    {
+        static int id = 0;
+
+        if (_reset_id) {
+            id = 0;
+        }
+
+        return fmt::format("t{}", id++);
+    } // generate_table_alias
 } // namespace irods::experimental::genquery
 
 #endif // IRODS_GENQUERY_UTILITIES_HPP

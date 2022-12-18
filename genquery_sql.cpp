@@ -7,8 +7,8 @@
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/breadth_first_search.hpp>
 #include <boost/iterator/function_input_iterator.hpp>
-
 #include <fmt/format.h>
 
 #include <iostream>
@@ -52,22 +52,6 @@ namespace
         "R_USER_PASSWORD",              // 16
         "R_USER_SESSION_KEY",           // 17
         "R_ZONE_MAIN",                  // 18
-
-        // NEW STUFF
-        "R_META_MAIN_COLL",             // 19
-        "R_META_MAIN_DATA",             // 20
-        "R_OBJT_METAMAP_COLL",          // 21
-        "R_OBJT_METAMAP_DATA",          // 22
-
-        "R_META_MAIN_RESC",             // 23
-        "R_META_MAIN_USER",             // 24
-        "R_OBJT_METAMAP_RESC",          // 25
-        "R_OBJT_METAMAP_USER",          // 26
-
-        "R_OBJT_ACCESS_COLL",           // 27
-        "R_OBJT_ACCESS_DATA",           // 28
-        "R_TOKN_MAIN_COLL",             // 29
-        "R_TOKN_MAIN_DATA",             // 30
     }); // table_names
 
     // TODO Consider using the lookup function to resolve table names to indices.
@@ -97,20 +81,6 @@ namespace
         {15, 14},  // R_USER_MAIN.user_id = R_USER_GROUP.group_user_id
         {15, 16},  // R_USER_MAIN.user_id = R_USER_PASSWORD.user_id
         {15, 17},  // R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id
-
-        // NEW STUFF
-        {0, 21},   // R_COLL_MAIN.coll_id = R_OBJT_METAMAP_COLL.object_id
-        {1, 22},   // R_DATA_MAIN.data_id = R_OBJT_METAMAP_DATA.object_id
-        {19, 21},  // R_META_MAIN_COLL.meta_id = R_OBJT_METAMAP_COLL.meta_id
-        {20, 22},  // R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id
-
-        {5, 25},   // R_RESC_MAIN.resc_id = R_OBJT_METAMAP_RESC.object_id
-        {15, 26},  // R_USER_MAIN.user_id = R_OBJT_METAMAP_USER.object_id
-        {23, 25},  // R_META_MAIN_RESC.meta_id = R_OBJT_METAMAP_RESC.meta_id
-        {24, 26},  // R_META_MAIN_USER.meta_id = R_OBJT_METAMAP_USER.meta_id
-
-        {27, 29},  // R_OBJT_ACCESS_COLL.access_type_id = R_TOKN_MAIN_COLL.token_id
-        {28, 30},  // R_OBJT_ACCESS_DATA.access_type_id = R_TOKN_MAIN_DATA.token_id
 
         // TODO Handle R_USER_GROUP?
         // TODO Handle R_QUOTA_MAIN
@@ -145,20 +115,6 @@ namespace
         "R_USER_MAIN.user_id = R_USER_GROUP.group_user_id",
         "R_USER_MAIN.user_id = R_USER_PASSWORD.user_id",
         "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id",
-
-        // NEW STUFF
-        "R_COLL_MAIN.coll_id = R_OBJT_METAMAP_COLL.object_id",
-        "R_DATA_MAIN.data_id = R_OBJT_METAMAP_DATA.object_id",
-        "R_META_MAIN_COLL.meta_id = R_OBJT_METAMAP_COLL.meta_id",
-        "R_META_MAIN_DATA.meta_id = R_OBJT_METAMAP_DATA.meta_id",
-
-        "R_RESC_MAIN.resc_id = R_OBJT_METAMAP_RESC.object_id",
-        "R_USER_MAIN.user_id = R_OBJT_METAMAP_USER.object_id",
-        "R_META_MAIN_RESC.meta_id = R_OBJT_METAMAP_RESC.meta_id",
-        "R_META_MAIN_USER.meta_id = R_OBJT_METAMAP_USER.meta_id",
-
-        "R_OBJT_ACCESS_COLL.access_type_id = R_TOKN_MAIN_COLL.token_id",
-        "R_OBJT_ACCESS_DATA.access_type_id = R_TOKN_MAIN_DATA.token_id",
     }); // table_joins
 
     constexpr auto table_name_index(const std::string_view _table_name) -> std::size_t
@@ -175,13 +131,37 @@ namespace
 
 namespace irods::experimental::api::genquery
 {
+    struct db_table
+    {
+        std::string name;
+        std::string alias;
+        int id;
+    };
+
+    struct db_column
+    {
+        std::string table_alias;
+        std::string name;
+    };
+
+    auto operator==(const db_table& _lhs, const db_table& _rhs) -> bool
+    {
+        return _lhs.name == _rhs.name && _lhs.alias == _rhs.alias && _lhs.id == _rhs.id;
+    }
+
+    auto operator==(const db_column& _lhs, const db_column& _rhs) -> bool
+    {
+        return _lhs.table_alias == _rhs.table_alias && _lhs.name == _rhs.name;
+    }
+
     auto no_distinct_flag = false;
     auto in_select_clause = false;
 
     std::vector<std::string> select_columns;
-    std::vector<std::string> columns;
-    std::vector<std::string> tables;
+    std::vector<db_column> columns;
+    std::vector<db_table> tables;
     std::vector<std::string> values;
+    std::vector<std::string_view> resolved_columns;
 
     template <typename Iterable>
     std::string to_string(const Iterable& iterable)
@@ -199,11 +179,17 @@ namespace irods::experimental::api::genquery
         }
     };
 
-    void add_table(std::vector<std::string>& _v, const std::string_view _table)
+    void add_table(std::vector<db_table>& _v, const db_table& _table)
     {
         if (auto iter = std::find(std::begin(_v), std::end(_v), _table); iter == std::end(_v)) {
-            _v.push_back(_table.data());
+            _v.push_back(_table);
         }
+    }
+
+    template <typename Container, typename Value>
+    constexpr bool contains(const Container& _container, const Value& _value)
+    {
+        return std::find(std::begin(_container), std::end(_container), _value) != std::end(_container);
     }
 
     std::string sql(const Column& column)
@@ -211,15 +197,35 @@ namespace irods::experimental::api::genquery
         const auto iter = column_name_mappings.find(column.name);
         
         if (iter != std::end(column_name_mappings)) {
-            columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
+            // TODO How do we know when to generate a new table alias?
+            //
+            // Consider the case where META_DATA_ATTR_NAME and META_COLL_ATTR_NAME
+            // appear in the query.
 
-            if (in_select_clause) {
-                select_columns.push_back(columns.back());
+            std::string table_alias;
+
+            const auto table_iter = std::find_if(std::begin(tables), std::end(tables), [&col = *iter](auto&& _t) {
+                return _t.name == col.second.table && _t.id == col.second.id;
+            });
+
+            if (table_iter == std::end(tables)) {
+                table_alias = irods::experimental::genquery::generate_table_alias();
+            }
+            else {
+                table_alias = table_iter->alias;
             }
 
-            add_table(tables, iter->second.table);
+            columns.push_back({table_alias, iter->second.name.data()});
 
-            return columns.back();
+            if (in_select_clause) {
+                const auto& c = columns.back();
+                select_columns.push_back(fmt::format("{}.{}", c.table_alias, c.name));
+            }
+
+            add_table(tables, {iter->second.table.data(), table_alias, iter->second.id});
+
+            const auto& c = columns.back();
+            return fmt::format("{}.{}", table_alias, c.name);
         }
 
         // TODO Is this the error case? Most likely.
@@ -233,13 +239,21 @@ namespace irods::experimental::api::genquery
         const auto iter = column_name_mappings.find(select_function.column.name);
         
         if (iter != std::end(column_name_mappings)) {
-            columns.push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
+            // TODO How do we know when to generate a new table alias?
+            //
+            // Consider the case where META_DATA_ATTR_NAME and META_COLL_ATTR_NAME
+            // appear in the query.
+
+            const auto table_alias = irods::experimental::genquery::generate_table_alias();
+
+            columns.push_back({table_alias, iter->second.name.data()});
 
             if (in_select_clause) {
-                select_columns.push_back(fmt::format("{}({})", select_function.name, columns.back()));
+                const auto& c = columns.back();
+                select_columns.push_back(fmt::format("{}({}.{})", select_function.name, c.table_alias, c.name));
             }
 
-            add_table(tables, iter->second.table);
+            add_table(tables, {iter->second.table.data(), table_alias});
 
             return select_columns.back();
         }
@@ -404,9 +418,118 @@ namespace irods::experimental::api::genquery
             return "EMPTY RESULTSET";
         }
 
+        // TODO Algorithm
+        // 1. Gather all tables from columns.
+        // 2. Assign table aliases to tables and columns.
+        // 3. Resolve joins for each table.
+        //
+        // TODO Optimizations
+        // - Cache the SQL for multiple runs of the same GenQuery string.
+
         // TODO Handle special case where the user only queries columns from a
         // single table (e.g. DATA_NAME, DATA_ID, DATA_REPL_NUM).
 
+        std::for_each(std::begin(tables), std::end(tables), [](auto&& _t) {
+            fmt::print("TABLE => {}, ALIAS => {}\n", _t.name, _t.alias);
+        });
+        fmt::print("\n");
+
+        std::for_each(std::begin(columns), std::end(columns), [](auto&& _c) {
+            fmt::print("COLUMN => {}.{}\n", _c.table_alias, _c.name);
+        });
+        fmt::print("\n");
+
+        std::for_each(std::begin(select_columns), std::end(select_columns), [](auto&& _c) {
+            fmt::print("COLUMN => {}\n", _c);
+        });
+        fmt::print("\n");
+
+        graph_type g{table_edges.data(),
+                     table_edges.data() + table_edges.size(),
+                     table_names.size()};
+
+        // Assign the table names to each vertex (i.e. each vertex represents a table).
+        for (auto [iter, last] = boost::vertices(g); iter != last; ++iter) {
+            g[*iter].table_name = table_names[*iter];
+        }
+
+        // Assign the table joins to each edge (i.e. each edge represents a table join).
+        for (auto [iter, last] = boost::edges(g); iter != last; ++iter) {
+            g[*iter].sql_join_condition = table_joins[table_edges.size() - std::distance(iter, last)];
+        }
+
+        std::set<std::vector<std::string_view>> all_paths;
+
+        //for (auto&& t : tables) {
+        for (auto&& t : table_names) {
+            // Generate paths.
+            std::array<vertex_type, table_names.size()> preds;
+            std::fill(std::begin(preds), std::end(preds), graph_type::null_vertex());
+
+            boost::breadth_first_search(
+                g,
+                //boost::vertex(table_name_index(tables[0].name), g),
+                //boost::vertex(table_name_index(t.name), g),
+                boost::vertex(table_name_index(t), g),
+                boost::visitor(boost::make_bfs_visitor(boost::record_predecessors(
+                    boost::make_iterator_property_map(preds.data(), boost::get(boost::vertex_index, g)),
+                    boost::on_tree_edge{})))
+            );
+
+            const auto print_path = [](const auto& _pmap, std::size_t _dst_vertex) -> std::vector<std::string_view>
+            {
+                std::vector<std::string_view> path;
+
+                for (auto cur = _dst_vertex; cur != std::size_t(-1); cur = _pmap[cur]) {
+                    path.push_back(table_names[cur]);
+                }
+
+                std::reverse(std::begin(path), std::end(path));
+                //fmt::print("[{}]\n", fmt::join(path, ", "));
+
+                return path;
+            };
+
+            //std::vector<std::vector<std::string_view>> paths;
+            for (auto i = 0ull; i < boost::num_vertices(g); ++i) {
+                //paths.push_back(print_path(preds, i));
+                all_paths.insert(print_path(preds, i));
+            }
+
+            // Find the paths from the src table to each dst table.
+            //std::for_each(std::begin(tables), std::end(tables), [&g, &paths](const db_table& _db_table) {
+            //});
+
+            //fmt::print("\n");
+        }
+
+        std::for_each(std::begin(all_paths), std::end(all_paths), [](auto&& _path) {
+            fmt::print("[{}]\n", fmt::join(_path, ", "));
+        });
+#if 0
+        // TODO For each entry in columns, find the joins from the source vertex (i.e. table)
+        // to the destination vertex (i.e. the entry in the columns vector).
+        std::for_each(std::begin(columns), std::end(columns), [&g](auto&& _c) {
+            const auto paths = compute_all_paths_from_source(g, table_name_index(tables[0].name));
+
+            // Convert table names into indices. The index of a table matches its position in the array.
+            std::set<vertex_type> table_indices;
+            std::transform(std::begin(tables), std::end(tables), std::inserter(table_indices, std::end(table_indices)),
+                           [](auto&& _table) { return table_name_index(_table.name); });
+
+            const auto filtered_paths = irods::experimental::genquery::filter(paths, table_indices);
+            const auto shortest_path = irods::experimental::genquery::get_shortest_path(filtered_paths);
+
+            if (shortest_path) {
+                fmt::print("\nShortest Filtered Path:\n");
+                fmt::print("  [{}]\n", fmt::join(*shortest_path, ", "));
+            }
+        });
+#endif
+
+        return "";
+
+#if 0
         graph_type g{table_edges.data(),
                      table_edges.data() + table_edges.size(),
                      table_names.size()};
@@ -420,8 +543,8 @@ namespace irods::experimental::api::genquery
         for (auto [iter, last] = boost::edges(g); iter != last; ++iter) {
             g[*iter].sql_join_condition = table_joins[table_edges.size() - std::distance(iter, last)];
         }
-#define IRODS_GENQUERY_ENABLE_DEBUG
 
+#define IRODS_GENQUERY_ENABLE_DEBUG
 #ifdef IRODS_GENQUERY_ENABLE_DEBUG
         // Print the list of edges.
         fmt::print("Edges:\n");
@@ -514,6 +637,7 @@ namespace irods::experimental::api::genquery
         }
 
         return "";
+#endif
     }
 } // namespace irods::experimental::api::genquery
 
