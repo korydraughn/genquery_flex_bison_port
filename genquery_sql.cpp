@@ -447,7 +447,7 @@ namespace irods::experimental::api::genquery
     std::string sql(const Select& select)
     {
         try {
-            fmt::print("PHASE 1: Gather\n\n");
+            fmt::print("### PHASE 1: Gather\n\n");
 
             // Extract tables and columns from general query statement.
             sql(select.selections);
@@ -501,6 +501,11 @@ namespace irods::experimental::api::genquery
 
             // TODO The following SQL statements can be stored as a format string for reuse. Placeholders can
             // be given names so that we can replace markers that match the same value.
+            //
+            // TODO Remember: Table aliases for R_OBJT_METAMAP and R_META_MAIN can be generated without needing
+            // to store them in the table_aliases container by simply concatenating the table alias of META_*_ATTR_*
+            // with a fixed string. Doing this will avoid alias collisions and allow the SQL-join strings to be
+            // captured in a hard-coded list.
             if (add_joins_for_meta_data) {
                 // select distinct d.data_id, c.coll_name, d.data_name, mmd.meta_attr_name, mmc.meta_attr_name
                 // from R_COLL_MAIN c                                                                                
@@ -535,19 +540,19 @@ namespace irods::experimental::api::genquery
             }
 
             //
-            // Generate SQL statement
+            // Generate SQL
             //
 
-            fmt::print("\nPHASE 2: SQL Generation\n\n");
+            fmt::print("\n### PHASE 2: SQL Generation\n\n");
 
-            // Generate select clause.
+            // Generate the SELECT clause.
             //
-            // TODO Use Boost.Graph to resolve table joins for the select clause.
+            // TODO Use Boost.Graph to resolve table joins for the SELECT clause.
             // This step does not concern itself with special columns (e.g. META_DATA_ATTR_NAME). Those
             // will handled in a later step.
             //
             // The tables stored in sql_tables must be directly joinable to at least one other table in
-            // the sql_tables list.
+            // the sql_tables list. This step is NOT allowed to introduce intermediate tables.
             auto select_clause = fmt::format("select <columns> from {} {}",
                                              sql_tables.front(),
                                              table_aliases.at(std::string{sql_tables.front()}));
