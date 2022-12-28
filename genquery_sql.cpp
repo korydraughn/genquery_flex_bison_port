@@ -127,41 +127,43 @@ namespace
 
         throw std::invalid_argument{fmt::format("table [{}] not supported", _table_name)};
     } // table_name_index
+
+    auto generate_table_alias() -> std::string
+    {
+        static int id = 0;
+        return fmt::format("t{}", id++);
+    } // generate_table_alias
+
+    constexpr auto is_metadata_column(std::string_view _column) -> bool
+    {
+        // clang-format off
+        return _column.starts_with("META_D") ||
+               _column.starts_with("META_C") ||
+               _column.starts_with("META_R") ||
+               _column.starts_with("META_U");
+        // clang-format on
+    } // is_metadata_column
 } // anonymous namespace
 
 namespace irods::experimental::api::genquery
 {
-    struct db_table
-    {
-        std::string name;
-        std::string alias;
-        int id;
-    };
-
-    struct db_column
-    {
-        std::string table_alias;
-        std::string name;
-    };
-
-    auto operator==(const db_table& _lhs, const db_table& _rhs) -> bool
-    {
-        return _lhs.name == _rhs.name && _lhs.alias == _rhs.alias && _lhs.id == _rhs.id;
-    }
-
-    auto operator==(const db_column& _lhs, const db_column& _rhs) -> bool
-    {
-        return _lhs.table_alias == _rhs.table_alias && _lhs.name == _rhs.name;
-    }
-
     auto no_distinct_flag = false;
     auto in_select_clause = false;
 
+    bool add_joins_for_meta_data = false;
+    bool add_joins_for_meta_coll = false;
+    bool add_joins_for_meta_resc = false;
+    bool add_joins_for_meta_user = false;
+
+    std::vector<std::string> columns_for_select_clause;
+    std::vector<std::string> columns_for_where_clause;
+    std::vector<std::string_view> sql_tables;
+
     std::vector<std::string> select_columns;
-    std::vector<db_column> columns;
-    std::vector<db_table> tables;
     std::vector<std::string> values;
     std::vector<std::string_view> resolved_columns;
+
+    std::map<std::string, std::string> table_aliases;
 
     template <typename Iterable>
     std::string to_string(const Iterable& iterable)
@@ -179,13 +181,6 @@ namespace irods::experimental::api::genquery
         }
     };
 
-    void add_table(std::vector<db_table>& _v, const db_table& _table)
-    {
-        if (auto iter = std::find(std::begin(_v), std::end(_v), _table); iter == std::end(_v)) {
-            _v.push_back(_table);
-        }
-    }
-
     template <typename Container, typename Value>
     constexpr bool contains(const Container& _container, const Value& _value)
     {
@@ -196,71 +191,111 @@ namespace irods::experimental::api::genquery
     {
         const auto iter = column_name_mappings.find(column.name);
         
-        if (iter != std::end(column_name_mappings)) {
-            // TODO How do we know when to generate a new table alias?
-            //
-            // Consider the case where META_DATA_ATTR_NAME and META_COLL_ATTR_NAME
-            // appear in the query.
-
-            std::string table_alias;
-
-            const auto table_iter = std::find_if(std::begin(tables), std::end(tables), [&col = *iter](auto&& _t) {
-                return _t.name == col.second.table && _t.id == col.second.id;
-            });
-
-            if (table_iter == std::end(tables)) {
-                table_alias = irods::experimental::genquery::generate_table_alias();
-            }
-            else {
-                table_alias = table_iter->alias;
-            }
-
-            columns.push_back({table_alias, iter->second.name.data()});
-
-            if (in_select_clause) {
-                const auto& c = columns.back();
-                select_columns.push_back(fmt::format("{}.{}", c.table_alias, c.name));
-            }
-
-            add_table(tables, {iter->second.table.data(), table_alias, iter->second.id});
-
-            const auto& c = columns.back();
-            return fmt::format("{}.{}", table_alias, c.name);
+        if (iter == std::end(column_name_mappings)) {
+            throw std::invalid_argument{fmt::format("unknown column: {}", column.name)};
         }
 
-        // TODO Is this the error case? Most likely.
-        // You only reach this line if the GenQuery column name doesn't have a mapping.
-        // Keep in mind that the select clause's return value is never used in this implementation.
-        return "";
+        // clang-format off
+        if      (column.name.starts_with("META_D")) { add_joins_for_meta_data = true; }
+        else if (column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; }
+        else if (column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; }
+        else if (column.name.starts_with("META_U")) { add_joins_for_meta_user = true; }
+        // clang-format on
+
+        auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
+        columns_ptr->push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
+
+        if (!contains(sql_tables, iter->second.table)) {
+            // Special columns such as the general query metadata columns are handled separately
+            // because they require multiple table joins. For this reason, we don't allow any of those
+            // tables to be added to the table list.
+            if (!is_metadata_column(column.name)) {
+                sql_tables.push_back(iter->second.table);
+                table_aliases[std::string{iter->second.table}] = generate_table_alias();
+            }
+#if 0
+            else if (add_joins_for_meta_data) {
+                if (!contains(table_aliases, "R_META_MAIN_DATA")) {
+                    table_aliases["R_META_MAIN_DATA"] = generate_table_alias();
+                }
+            }
+            else if (add_joins_for_meta_coll) {
+                if (!contains(table_aliases, "R_META_MAIN_COLL")) {
+                    table_aliases["R_META_MAIN_COLL"] = generate_table_alias();
+                }
+            }
+            else if (add_joins_for_meta_resc) {
+                if (!contains(table_aliases, "R_META_MAIN_RESC")) {
+                    table_aliases["R_META_MAIN_RESC"] = generate_table_alias();
+                }
+            }
+            else if (add_joins_for_meta_user) {
+                if (!contains(table_aliases, "R_META_MAIN_USER")) {
+                    table_aliases["R_META_MAIN_USER"] = generate_table_alias();
+                }
+            }
+#endif
+        }
+
+        return "{}";
     }
 
     std::string sql(const SelectFunction& select_function)
     {
         const auto iter = column_name_mappings.find(select_function.column.name);
         
-        if (iter != std::end(column_name_mappings)) {
-            // TODO How do we know when to generate a new table alias?
-            //
-            // Consider the case where META_DATA_ATTR_NAME and META_COLL_ATTR_NAME
-            // appear in the query.
-
-            const auto table_alias = irods::experimental::genquery::generate_table_alias();
-
-            columns.push_back({table_alias, iter->second.name.data()});
-
-            if (in_select_clause) {
-                const auto& c = columns.back();
-                select_columns.push_back(fmt::format("{}({}.{})", select_function.name, c.table_alias, c.name));
-            }
-
-            add_table(tables, {iter->second.table.data(), table_alias});
-
-            return select_columns.back();
+        if (iter == std::end(column_name_mappings)) {
+            throw std::invalid_argument{fmt::format("unknown column: {}", select_function.column.name)};
         }
 
-        // TODO Is this the error case? Most likely.
-        // You only reach this line if the GenQuery column name doesn't have a mapping.
-        // Keep in mind that the select clause's return value is never used in this implementation.
+        // TODO Allow aggregate functions in where clause.
+        // For now, let's ignore that case until we have something more functional.
+        if (!in_select_clause) {
+            throw std::invalid_argument{"aggregate functions not allowed in where clause"};
+        }
+
+        // clang-format off
+        if      (select_function.column.name.starts_with("META_D")) { add_joins_for_meta_data = true; }
+        else if (select_function.column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; }
+        else if (select_function.column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; }
+        else if (select_function.column.name.starts_with("META_U")) { add_joins_for_meta_user = true; }
+        // clang-format on
+
+        auto& column = iter->second;
+        columns_for_select_clause.push_back(fmt::format("{}({}.{})", select_function.name, column.table, column.name));
+
+        if (!contains(sql_tables, iter->second.table)) {
+            // Special columns such as the general query metadata columns are handled separately
+            // because they require multiple table joins. For this reason, we don't allow any of those
+            // tables to be added to the table list.
+            if (!is_metadata_column(select_function.column.name)) {
+                sql_tables.push_back(iter->second.table);
+                table_aliases[std::string{iter->second.table}] = generate_table_alias();
+            }
+#if 0
+            else if (add_joins_for_meta_data) {
+                if (!contains(table_aliases, "R_META_MAIN_DATA")) {
+                    table_aliases["R_META_MAIN_DATA"] = generate_table_alias();
+                }
+            }
+            else if (add_joins_for_meta_coll) {
+                if (!contains(table_aliases, "R_META_MAIN_COLL")) {
+                    table_aliases["R_META_MAIN_COLL"] = generate_table_alias();
+                }
+            }
+            else if (add_joins_for_meta_resc) {
+                if (!contains(table_aliases, "R_META_MAIN_RESC")) {
+                    table_aliases["R_META_MAIN_RESC"] = generate_table_alias();
+                }
+            }
+            else if (add_joins_for_meta_user) {
+                if (!contains(table_aliases, "R_META_MAIN_USER")) {
+                    table_aliases["R_META_MAIN_USER"] = generate_table_alias();
+                }
+            }
+#endif
+        }
+
         return "";
     }
 
@@ -279,10 +314,10 @@ namespace irods::experimental::api::genquery
         // bison parser rules.
         in_select_clause = true;
 
-        tables.clear();
+        sql_tables.clear();
 
         if (selections.empty()) {
-            throw std::runtime_error{"selections are empty"};
+            throw std::runtime_error{"no columns selected."};
         }
 
         for (auto&& selection : selections) {
@@ -411,233 +446,125 @@ namespace irods::experimental::api::genquery
 
     std::string sql(const Select& select)
     {
-        sql(select.selections);
-        const auto conds = sql(select.conditions);
+        try {
+            fmt::print("PHASE 1: Gather\n\n");
 
-        if (tables.empty()) {
-            return "EMPTY RESULTSET";
-        }
+            // Extract tables and columns from general query statement.
+            sql(select.selections);
 
-        // TODO Algorithm
-        // 1. Gather all tables from columns.
-        // 2. Assign table aliases to tables and columns.
-        // 3. Resolve joins for each table.
-        //
-        // TODO Optimizations
-        // - Cache the SQL for multiple runs of the same GenQuery string.
+            // Convert the conditions of the general query statement into SQL with prepared
+            // statement placeholders.
+            const auto conds = sql(select.conditions);
+            fmt::print("CONDITIONS = {}\n\n", conds);
 
-        // TODO Handle special case where the user only queries columns from a
-        // single table (e.g. DATA_NAME, DATA_ID, DATA_REPL_NUM).
+            if (sql_tables.empty()) {
+                return "EMPTY RESULTSET";
+            }
 
-        std::for_each(std::begin(tables), std::end(tables), [](auto&& _t) {
-            fmt::print("TABLE => {}, ALIAS => {}\n", _t.name, _t.alias);
-        });
-        fmt::print("\n");
+            // TODO Algorithm
+            // 1. Gather all tables from columns.
+            // 2. Assign table aliases to tables and columns.
+            // 3. Resolve joins for each table.
+            //
+            // TODO Optimizations
+            // - Cache the SQL for multiple runs of the same GenQuery string.
 
-        std::for_each(std::begin(columns), std::end(columns), [](auto&& _c) {
-            fmt::print("COLUMN => {}.{}\n", _c.table_alias, _c.name);
-        });
-        fmt::print("\n");
+            // TODO Handle special case where the user only queries columns from a
+            // single table (e.g. DATA_NAME, DATA_ID, DATA_REPL_NUM).
 
-        std::for_each(std::begin(select_columns), std::end(select_columns), [](auto&& _c) {
-            fmt::print("COLUMN => {}\n", _c);
-        });
-        fmt::print("\n");
+            std::for_each(std::begin(sql_tables), std::end(sql_tables), [](auto&& _t) {
+                std::string_view alias = "";
 
-        graph_type g{table_edges.data(),
-                     table_edges.data() + table_edges.size(),
-                     table_names.size()};
-
-        // Assign the table names to each vertex (i.e. each vertex represents a table).
-        for (auto [iter, last] = boost::vertices(g); iter != last; ++iter) {
-            g[*iter].table_name = table_names[*iter];
-        }
-
-        // Assign the table joins to each edge (i.e. each edge represents a table join).
-        for (auto [iter, last] = boost::edges(g); iter != last; ++iter) {
-            g[*iter].sql_join_condition = table_joins[table_edges.size() - std::distance(iter, last)];
-        }
-
-        std::set<std::vector<std::string_view>> all_paths;
-
-        //for (auto&& t : tables) {
-        for (auto&& t : table_names) {
-            // Generate paths.
-            std::array<vertex_type, table_names.size()> preds;
-            std::fill(std::begin(preds), std::end(preds), graph_type::null_vertex());
-
-            boost::breadth_first_search(
-                g,
-                //boost::vertex(table_name_index(tables[0].name), g),
-                //boost::vertex(table_name_index(t.name), g),
-                boost::vertex(table_name_index(t), g),
-                boost::visitor(boost::make_bfs_visitor(boost::record_predecessors(
-                    boost::make_iterator_property_map(preds.data(), boost::get(boost::vertex_index, g)),
-                    boost::on_tree_edge{})))
-            );
-
-            const auto print_path = [](const auto& _pmap, std::size_t _dst_vertex) -> std::vector<std::string_view>
-            {
-                std::vector<std::string_view> path;
-
-                for (auto cur = _dst_vertex; cur != std::size_t(-1); cur = _pmap[cur]) {
-                    path.push_back(table_names[cur]);
+                if (const auto iter = table_aliases.find(std::string{_t}); iter != std::end(table_aliases)) {
+                    alias = iter->second;
                 }
 
-                std::reverse(std::begin(path), std::end(path));
-                //fmt::print("[{}]\n", fmt::join(path, ", "));
+                fmt::print("TABLE => {} [alias={}]\n", _t, alias);
+            });
+            fmt::print("\n");
 
-                return path;
-            };
+            std::for_each(std::begin(columns_for_select_clause), std::end(columns_for_select_clause), [](auto&& _c) {
+                fmt::print("COLUMN FOR SELECT CLAUSE => {}\n", _c);
+            });
+            fmt::print("\n");
 
-            //std::vector<std::vector<std::string_view>> paths;
-            for (auto i = 0ull; i < boost::num_vertices(g); ++i) {
-                //paths.push_back(print_path(preds, i));
-                all_paths.insert(print_path(preds, i));
+            std::for_each(std::begin(columns_for_where_clause), std::end(columns_for_where_clause), [](auto&& _c) {
+                fmt::print("COLUMN FOR WHERE CLAUSE => {}\n", _c);
+            });
+            fmt::print("\n");
+
+            fmt::print("requires metadata table joins for R_DATA_MAIN? {}\n", (add_joins_for_meta_data == true));
+            fmt::print("requires metadata table joins for R_COLL_MAIN? {}\n", (add_joins_for_meta_coll == true));
+            fmt::print("requires metadata table joins for R_RESC_MAIN? {}\n", (add_joins_for_meta_resc == true));
+            fmt::print("requires metadata table joins for R_USER_MAIN? {}\n", (add_joins_for_meta_user == true));
+            fmt::print("\n");
+
+            // TODO The following SQL statements can be stored as a format string for reuse. Placeholders can
+            // be given names so that we can replace markers that match the same value.
+            if (add_joins_for_meta_data) {
+                // select distinct d.data_id, c.coll_name, d.data_name, mmd.meta_attr_name, mmc.meta_attr_name
+                // from R_COLL_MAIN c                                                                                
+                // inner join R_DATA_MAIN d on c.coll_id = d.coll_id                                                 
+                // left join R_OBJT_METAMAP ommd on d.data_id = ommd.object_id                                       
+                // left join R_OBJT_METAMAP ommc on c.coll_id = ommc.object_id                                       
+                // left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id                                           
+                // left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id                                           
+                // where mmd.meta_attr_name = 'job' or                                                               
+                //       mmc.meta_attr_name = 'nope';                                                                
+                fmt::print("left join R_OBJT_METAMAP on R_DATA_MAIN.data_id = R_OBJT_METAMAP.object_id "
+                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
+                fmt::print("\n");
             }
 
-            // Find the paths from the src table to each dst table.
-            //std::for_each(std::begin(tables), std::end(tables), [&g, &paths](const db_table& _db_table) {
-            //});
-
-            //fmt::print("\n");
-        }
-
-        std::for_each(std::begin(all_paths), std::end(all_paths), [](auto&& _path) {
-            fmt::print("[{}]\n", fmt::join(_path, ", "));
-        });
-#if 0
-        // TODO For each entry in columns, find the joins from the source vertex (i.e. table)
-        // to the destination vertex (i.e. the entry in the columns vector).
-        std::for_each(std::begin(columns), std::end(columns), [&g](auto&& _c) {
-            const auto paths = compute_all_paths_from_source(g, table_name_index(tables[0].name));
-
-            // Convert table names into indices. The index of a table matches its position in the array.
-            std::set<vertex_type> table_indices;
-            std::transform(std::begin(tables), std::end(tables), std::inserter(table_indices, std::end(table_indices)),
-                           [](auto&& _table) { return table_name_index(_table.name); });
-
-            const auto filtered_paths = irods::experimental::genquery::filter(paths, table_indices);
-            const auto shortest_path = irods::experimental::genquery::get_shortest_path(filtered_paths);
-
-            if (shortest_path) {
-                fmt::print("\nShortest Filtered Path:\n");
-                fmt::print("  [{}]\n", fmt::join(*shortest_path, ", "));
-            }
-        });
-#endif
-
-        return "";
-
-#if 0
-        graph_type g{table_edges.data(),
-                     table_edges.data() + table_edges.size(),
-                     table_names.size()};
-
-        // Assign the table names to each vertex.
-        for (auto [iter, last] = boost::vertices(g); iter != last; ++iter) {
-            g[*iter].table_name = table_names[*iter];
-        }
-
-        // Assign the table joins to each edge.
-        for (auto [iter, last] = boost::edges(g); iter != last; ++iter) {
-            g[*iter].sql_join_condition = table_joins[table_edges.size() - std::distance(iter, last)];
-        }
-
-#define IRODS_GENQUERY_ENABLE_DEBUG
-#ifdef IRODS_GENQUERY_ENABLE_DEBUG
-        // Print the list of edges.
-        fmt::print("Edges:\n");
-        for (auto [iter, last] = boost::edges(g); iter != last; ++iter) {
-            const auto src_vertex = boost::source(*iter, g);
-            const auto dst_vertex = boost::target(*iter, g);
-            fmt::print("  ({}, {})\n", g[src_vertex].table_name, g[dst_vertex].table_name);
-        }
-#endif
-
-        const auto paths = compute_all_paths_from_source(g, table_name_index(tables[0]));
-#ifdef IRODS_GENQUERY_ENABLE_DEBUG
-        fmt::print("All Paths:\n");
-        for (auto&& p : paths) {
-            fmt::print("  [{}]\n", fmt::join(p, ", "));
-        }
-#endif
-
-        std::set<vertex_type> table_indices;
-        std::transform(std::begin(tables), std::end(tables), std::inserter(table_indices, std::end(table_indices)),
-                       [](auto&& _table_name) { return table_name_index(_table_name); });
-#ifdef IRODS_GENQUERY_ENABLE_DEBUG
-        fmt::print("Table Indices:\n");
-        for (auto&& i : table_indices) {
-            fmt::print("  {} => {}\n", table_names[i], i);
-        }
-#endif
-
-        const auto filtered_paths = irods::experimental::genquery::filter(paths, table_indices);
-#ifdef IRODS_GENQUERY_ENABLE_DEBUG
-        fmt::print("Filtered Paths:\n");
-        for (auto&& p : filtered_paths) {
-            fmt::print("  [{}]\n", fmt::join(p, ", "));
-        }
-#endif
-
-        const auto shortest_path = irods::experimental::genquery::get_shortest_path(filtered_paths);
-
-        if (shortest_path) {
-#ifdef IRODS_GENQUERY_ENABLE_DEBUG
-            fmt::print("Shortest Filtered Path:\n");
-            fmt::print("  [{}]\n", fmt::join(*shortest_path, ", "));
-
-            const auto joins = to_table_joins(*shortest_path, g, tables, table_names);
-            fmt::print("Table Joins:\n");
-            fmt::print("  [\n\t{}\n  ]\n", fmt::join(joins, ",\n\t"));
-#endif
-
-            const auto table_alias = table_alias_map.find(table_names[(*shortest_path)[0]]);
-            auto generated_sql = fmt::format("select {}{} from {}",
-                    select.no_distinct ? "" : "distinct ",
-                    fmt::join(select_columns, ", "),
-                    table_alias != std::end(table_alias_map)
-                        ? table_alias->second
-                        : table_names[(*shortest_path)[0]]);
-
-            if (shortest_path->size() > 1) {
-                const auto& sp = *shortest_path;
-
-                for (decltype(sp.size()) i = 1; i < sp.size(); ++i) {
-                    const auto table_alias = table_alias_map.find(table_names[sp[i]]);
-                    const auto [edge, exists] = boost::edge(sp[i - 1], sp[i], g);
-
-                    if (!exists) {
-                        throw std::runtime_error{"Cannot construct SQL from GenQuery string."};
-                    }
-
-                    generated_sql = fmt::format("{} inner join {} on {}",
-                                                generated_sql,
-                                                table_alias != std::end(table_alias_map)
-                                                    ? table_alias->second
-                                                    : table_names[sp[i]],
-                                                g[edge].sql_join_condition);
-                }
+            if (add_joins_for_meta_coll) {
+                fmt::print("left join R_OBJT_METAMAP on R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id "
+                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
+                fmt::print("\n");
             }
 
-            if (!conds.empty()) {
-                generated_sql += fmt::format(" where {}", conds);
+            if (add_joins_for_meta_resc) {
+                fmt::print("left join R_OBJT_METAMAP on R_RESC_MAIN.resc_id = R_OBJT_METAMAP.object_id "
+                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
+                fmt::print("\n");
             }
 
-            if (!select.order_by.columns.empty()) {
-                // All columns in the order by clause must exist in the list of columns to project.
-                // TODO Replace all columns with real table names.
-                generated_sql += fmt::format(" order by {} {}",
-                                             fmt::join(select.order_by.columns, ", "),
-                                             select.order_by.ascending_order ? "asc" : "desc");
+            if (add_joins_for_meta_user) {
+                fmt::print("left join R_OBJT_METAMAP on R_USER_MAIN.user_id = R_OBJT_METAMAP.object_id "
+                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
+                fmt::print("\n");
             }
 
-            return generated_sql;
+            //
+            // Generate SQL statement
+            //
+
+            fmt::print("\nPHASE 2: SQL Generation\n\n");
+
+            // Generate select clause.
+            //
+            // TODO Use Boost.Graph to resolve table joins for the select clause.
+            // This step does not concern itself with special columns (e.g. META_DATA_ATTR_NAME). Those
+            // will handled in a later step.
+            //
+            // The tables stored in sql_tables must be directly joinable to at least one other table in
+            // the sql_tables list.
+            auto select_clause = fmt::format("select <columns> from {} {}",
+                                             sql_tables.front(),
+                                             table_aliases.at(std::string{sql_tables.front()}));
+            for (auto iter = std::begin(sql_tables) + 1; iter != std::end(sql_tables); ++iter) {
+                const auto alias = table_aliases.at(std::string{*iter});
+                select_clause += fmt::format(" inner join {} {alias} on {alias}.<column> = <other_table>.<column>",
+                                             *iter, fmt::arg("alias", alias));
+            }
+            fmt::print("SELECT CLAUSE => {}\n", select_clause);
+            fmt::print("\n");
+
+            return "";
+        }
+        catch (const std::exception& e) {
+            fmt::print(stderr, "Exception: {}\n", e.what());
         }
 
         return "";
-#endif
     }
 } // namespace irods::experimental::api::genquery
-
