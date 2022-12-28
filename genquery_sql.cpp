@@ -91,30 +91,30 @@ namespace
         // TODO Handle R_TICKET_ALLOWED_GROUPS
     }); // table_edges
 
-    constinit const auto table_joins = std::to_array({
-        "R_COLL_MAIN.coll_id = R_DATA_MAIN.coll_id",
-        "R_COLL_MAIN.coll_id = R_OBJT_ACCESS.object_id",
-        "R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id",
-        "R_COLL_MAIN.coll_id = R_TICKET_MAIN.object_id",
+    constinit const auto table_joins = std::to_array<irods::experimental::genquery::edge_property>({
+        {"{}.coll_id = {}.coll_id",         "R_COLL_MAIN.coll_id = R_DATA_MAIN.coll_id"},
+        {"{}.coll_id = {}.object_id",       "R_COLL_MAIN.coll_id = R_OBJT_ACCESS.object_id"},
+        {"{}.coll_id = {}.object_id",       "R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id"},
+        {"{}.coll_id = {}.object_id",       "R_COLL_MAIN.coll_id = R_TICKET_MAIN.object_id"},
 
-        "R_DATA_MAIN.data_id = R_OBJT_ACCESS.object_id",
-        "R_DATA_MAIN.data_id = R_OBJT_METAMAP.object_id",
-        "R_DATA_MAIN.resc_id = R_RESC_MAIN.resc_id",
-        "R_DATA_MAIN.data_id = R_TICKET_MAIN.object_id",
+        {"{}.data_id = {}.object_id",       "R_DATA_MAIN.data_id = R_OBJT_ACCESS.object_id"},
+        {"{}.data_id = {}.object_id",       "R_DATA_MAIN.data_id = R_OBJT_METAMAP.object_id"},
+        {"{}.resc_id = {}.resc_id",         "R_DATA_MAIN.resc_id = R_RESC_MAIN.resc_id"},
+        {"{}.data_id = {}.object_id",       "R_DATA_MAIN.data_id = R_TICKET_MAIN.object_id"},
 
-        "R_META_MAIN.meta_id = R_OBJT_METAMAP.meta_id",
+        {"{}.meta_id = {}.meta_id",         "R_META_MAIN.meta_id = R_OBJT_METAMAP.meta_id"},
 
-        "R_OBJT_ACCESS.access_type_id = R_TOKN_MAIN.token_id",
+        {"{}.access_type_id = {}.token_id", "R_OBJT_ACCESS.access_type_id = R_TOKN_MAIN.token_id"},
 
-        "R_OBJT_METAMAP.object_id = R_RESC_MAIN.resc_id",
-        "R_OBJT_METAMAP.object_id = R_USER_MAIN.user_id",
+        {"{}.object_id = {}.resc_id",       "R_OBJT_METAMAP.object_id = R_RESC_MAIN.resc_id"},
+        {"{}.object_id = {}.user_id",       "R_OBJT_METAMAP.object_id = R_USER_MAIN.user_id"},
 
-        "R_TICKET_MAIN.user_id = R_USER_MAIN.user_id",
+        {"{}.user_id = {}.user_id",         "R_TICKET_MAIN.user_id = R_USER_MAIN.user_id"},
 
-        "R_USER_MAIN.user_id = R_USER_AUTH.user_id",
-        "R_USER_MAIN.user_id = R_USER_GROUP.group_user_id",
-        "R_USER_MAIN.user_id = R_USER_PASSWORD.user_id",
-        "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id",
+        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_AUTH.user_id"},
+        {"{}.user_id = {}.group_user_id",   "R_USER_MAIN.user_id = R_USER_GROUP.group_user_id"},
+        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_PASSWORD.user_id"},
+        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id"}
     }); // table_joins
 
     constexpr auto table_name_index(const std::string_view _table_name) -> std::size_t
@@ -195,11 +195,14 @@ namespace irods::experimental::api::genquery
             throw std::invalid_argument{fmt::format("unknown column: {}", column.name)};
         }
 
+        auto is_special_column = true;
+
         // clang-format off
         if      (column.name.starts_with("META_D")) { add_joins_for_meta_data = true; }
         else if (column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; }
         else if (column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; }
         else if (column.name.starts_with("META_U")) { add_joins_for_meta_user = true; }
+        else                                        { is_special_column = false; }
         // clang-format on
 
         auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
@@ -209,7 +212,7 @@ namespace irods::experimental::api::genquery
             // Special columns such as the general query metadata columns are handled separately
             // because they require multiple table joins. For this reason, we don't allow any of those
             // tables to be added to the table list.
-            if (!is_metadata_column(column.name)) {
+            if (!is_special_column) {
                 sql_tables.push_back(iter->second.table);
                 table_aliases[std::string{iter->second.table}] = generate_table_alias();
             }
@@ -237,7 +240,11 @@ namespace irods::experimental::api::genquery
 #endif
         }
 
-        return "{}";
+        if (is_special_column) {
+            return "{}";
+        }
+
+        return fmt::format("{}.{}", table_aliases.at(std::string{iter->second.table}), iter->second.name);
     }
 
     std::string sql(const SelectFunction& select_function)
@@ -254,11 +261,14 @@ namespace irods::experimental::api::genquery
             throw std::invalid_argument{"aggregate functions not allowed in where clause"};
         }
 
+        auto is_special_column = true;
+
         // clang-format off
         if      (select_function.column.name.starts_with("META_D")) { add_joins_for_meta_data = true; }
         else if (select_function.column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; }
         else if (select_function.column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; }
         else if (select_function.column.name.starts_with("META_U")) { add_joins_for_meta_user = true; }
+        else                                                        { is_special_column = false; }
         // clang-format on
 
         auto& column = iter->second;
@@ -268,9 +278,9 @@ namespace irods::experimental::api::genquery
             // Special columns such as the general query metadata columns are handled separately
             // because they require multiple table joins. For this reason, we don't allow any of those
             // tables to be added to the table list.
-            if (!is_metadata_column(select_function.column.name)) {
+            if (!is_special_column) {
                 sql_tables.push_back(iter->second.table);
-                table_aliases[std::string{iter->second.table}] = generate_table_alias();
+                table_aliases[std::string{column.table}] = generate_table_alias();
             }
 #if 0
             else if (add_joins_for_meta_data) {
@@ -296,7 +306,11 @@ namespace irods::experimental::api::genquery
 #endif
         }
 
-        return "";
+        if (is_special_column) {
+            return fmt::format("{}({{}}.{})", select_function.name, column.name);
+        }
+
+        return fmt::format("{}({}.{})", select_function.name, table_aliases.at(std::string{column.table}), column.name);
     }
 
     std::string sql(const Selections& selections)
@@ -545,6 +559,23 @@ namespace irods::experimental::api::genquery
 
             fmt::print("\n### PHASE 2: SQL Generation\n\n");
 
+            graph_type graph{table_edges.data(),
+                             table_edges.data() + table_edges.size(),
+                             table_names.size()};
+
+            for (auto [iter, last] = boost::vertices(graph); iter != last; ++iter) {
+                graph[*iter].table_name = table_names[*iter];
+            }
+
+            for (auto [iter, last] = boost::edges(graph); iter != last; ++iter) {
+                graph[*iter] = table_joins[table_edges.size() - std::distance(iter, last)];
+            }
+
+            {
+                const auto [e, exists] = boost::edge(0, 1, graph); // Order of vertices does not matter here.
+                fmt::print("TEST - edge: (0, 1) = {}\n\n", (exists ? graph[e].table_join_default : "does not exist"));
+            }
+
             // Generate the SELECT clause.
             //
             // TODO Use Boost.Graph to resolve table joins for the SELECT clause.
@@ -556,11 +587,33 @@ namespace irods::experimental::api::genquery
             auto select_clause = fmt::format("select <columns> from {} {}",
                                              sql_tables.front(),
                                              table_aliases.at(std::string{sql_tables.front()}));
+#if 0
             for (auto iter = std::begin(sql_tables) + 1; iter != std::end(sql_tables); ++iter) {
                 const auto alias = table_aliases.at(std::string{*iter});
                 select_clause += fmt::format(" inner join {} {alias} on {alias}.<column> = <other_table>.<column>",
                                              *iter, fmt::arg("alias", alias));
             }
+#else
+            const auto get_table_join = [&graph](const auto& _t1, const auto& _t2) -> std::string {
+                const auto t1_idx = table_name_index(_t1);
+                const auto t2_idx = table_name_index(_t2);
+                const auto [edge, exists] = boost::edge(t1_idx, t2_idx, graph);
+
+                if (!exists) {
+                    return "";
+                }
+
+                const auto t1_alias = table_aliases.at(std::string{_t1});
+                const auto t2_alias = table_aliases.at(std::string{_t2});
+                const auto sql = fmt::format("inner join {} {} on {}", _t2, t2_alias, graph[edge].table_join_fmt);
+
+                return fmt::format(fmt::runtime(sql), t1_alias, t2_alias);
+            };
+
+            // TODO Figure out how to generate the SQL joins with the least amount of steps.
+            // Can it be done in a single pass?
+            fmt::print("{}\n", get_table_join("R_DATA_MAIN", "R_RESC_MAIN"));
+#endif
             fmt::print("SELECT CLAUSE => {}\n", select_clause);
             fmt::print("\n");
 
