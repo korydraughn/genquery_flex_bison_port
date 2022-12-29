@@ -196,17 +196,15 @@ namespace irods::experimental::api::genquery
         }
 
         auto is_special_column = true;
+        std::string_view sp_fmt_arg;
 
         // clang-format off
-        if      (column.name.starts_with("META_D")) { add_joins_for_meta_data = true; }
-        else if (column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; }
-        else if (column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; }
-        else if (column.name.starts_with("META_U")) { add_joins_for_meta_user = true; }
+        if      (column.name.starts_with("META_D")) { add_joins_for_meta_data = true; sp_fmt_arg = "mmd"; }
+        else if (column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; sp_fmt_arg = "mmc"; }
+        else if (column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; sp_fmt_arg = "mmr"; }
+        else if (column.name.starts_with("META_U")) { add_joins_for_meta_user = true; sp_fmt_arg = "mmu"; }
         else                                        { is_special_column = false; }
         // clang-format on
-
-        auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
-        columns_ptr->push_back(fmt::format("{}.{}", iter->second.table, iter->second.name));
 
         if (!contains(sql_tables, iter->second.table)) {
             // Special columns such as the general query metadata columns are handled separately
@@ -240,11 +238,29 @@ namespace irods::experimental::api::genquery
 #endif
         }
 
+        auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
+
+#if 0
         if (is_special_column) {
-            return "{}";
+            columns_ptr->push_back(fmt::format("{}.{}", sp_fmt_arg, iter->second.name));
+        }
+        else {
+            columns_ptr->push_back(fmt::format("{}.{}", table_aliases.at(std::string{iter->second.table}), iter->second.name));
+        }
+#else
+        const std::string_view alias = is_special_column ? sp_fmt_arg : table_aliases.at(std::string{iter->second.table});
+        columns_ptr->push_back(fmt::format("{}.{}", alias, iter->second.name));
+#endif
+
+#if 0
+        if (is_special_column) {
+            return fmt::format("{}.{}", sp_fmt_arg, iter->second.name);
         }
 
         return fmt::format("{}.{}", table_aliases.at(std::string{iter->second.table}), iter->second.name);
+#else
+        return columns_ptr->back();
+#endif
     }
 
     std::string sql(const SelectFunction& select_function)
@@ -513,46 +529,6 @@ namespace irods::experimental::api::genquery
             fmt::print("requires metadata table joins for R_USER_MAIN? {}\n", (add_joins_for_meta_user == true));
             fmt::print("\n");
 
-            // TODO The following SQL statements can be stored as a format string for reuse. Placeholders can
-            // be given names so that we can replace markers that match the same value.
-            //
-            // TODO Remember: Table aliases for R_OBJT_METAMAP and R_META_MAIN can be generated without needing
-            // to store them in the table_aliases container by simply concatenating the table alias of META_*_ATTR_*
-            // with a fixed string. Doing this will avoid alias collisions and allow the SQL-join strings to be
-            // captured in a hard-coded list.
-            if (add_joins_for_meta_data) {
-                // select distinct d.data_id, c.coll_name, d.data_name, mmd.meta_attr_name, mmc.meta_attr_name
-                // from R_COLL_MAIN c                                                                                
-                // inner join R_DATA_MAIN d on c.coll_id = d.coll_id                                                 
-                // left join R_OBJT_METAMAP ommd on d.data_id = ommd.object_id                                       
-                // left join R_OBJT_METAMAP ommc on c.coll_id = ommc.object_id                                       
-                // left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id                                           
-                // left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id                                           
-                // where mmd.meta_attr_name = 'job' or                                                               
-                //       mmc.meta_attr_name = 'nope';                                                                
-                fmt::print("left join R_OBJT_METAMAP on R_DATA_MAIN.data_id = R_OBJT_METAMAP.object_id "
-                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
-                fmt::print("\n");
-            }
-
-            if (add_joins_for_meta_coll) {
-                fmt::print("left join R_OBJT_METAMAP on R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id "
-                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
-                fmt::print("\n");
-            }
-
-            if (add_joins_for_meta_resc) {
-                fmt::print("left join R_OBJT_METAMAP on R_RESC_MAIN.resc_id = R_OBJT_METAMAP.object_id "
-                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
-                fmt::print("\n");
-            }
-
-            if (add_joins_for_meta_user) {
-                fmt::print("left join R_OBJT_METAMAP on R_USER_MAIN.user_id = R_OBJT_METAMAP.object_id "
-                           "left join R_META_MAIN on R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id");
-                fmt::print("\n");
-            }
-
             //
             // Generate SQL
             //
@@ -571,11 +547,6 @@ namespace irods::experimental::api::genquery
                 graph[*iter] = table_joins[table_edges.size() - std::distance(iter, last)];
             }
 
-            {
-                const auto [e, exists] = boost::edge(0, 1, graph); // Order of vertices does not matter here.
-                fmt::print("TEST - edge: (0, 1) = {}\n\n", (exists ? graph[e].table_join_default : "does not exist"));
-            }
-
             // Generate the SELECT clause.
             //
             // TODO Use Boost.Graph to resolve table joins for the SELECT clause.
@@ -584,16 +555,14 @@ namespace irods::experimental::api::genquery
             //
             // The tables stored in sql_tables must be directly joinable to at least one other table in
             // the sql_tables list. This step is NOT allowed to introduce intermediate tables.
-            auto select_clause = fmt::format("select <columns> from {} {}",
-                                             sql_tables.front(),
-                                             table_aliases.at(std::string{sql_tables.front()}));
-#if 0
-            for (auto iter = std::begin(sql_tables) + 1; iter != std::end(sql_tables); ++iter) {
-                const auto alias = table_aliases.at(std::string{*iter});
-                select_clause += fmt::format(" inner join {} {alias} on {alias}.<column> = <other_table>.<column>",
-                                             *iter, fmt::arg("alias", alias));
-            }
-#else
+            auto select_clause = fmt::format("select {columns} from {table} {alias}",
+                                             fmt::arg("columns", fmt::join(columns_for_select_clause, ", ")),
+                                             fmt::arg("table", sql_tables.front()),
+                                             fmt::arg("alias", table_aliases.at(std::string{sql_tables.front()})));
+
+            fmt::print("SELECT CLAUSE => {}\n", select_clause);
+            fmt::print("\n");
+
             const auto get_table_join = [&graph](const auto& _t1, const auto& _t2) -> std::string {
                 const auto t1_idx = table_name_index(_t1);
                 const auto t2_idx = table_name_index(_t2);
@@ -612,10 +581,87 @@ namespace irods::experimental::api::genquery
 
             // TODO Figure out how to generate the SQL joins with the least amount of steps.
             // Can it be done in a single pass?
-            fmt::print("{}\n", get_table_join("R_DATA_MAIN", "R_RESC_MAIN"));
-#endif
-            fmt::print("SELECT CLAUSE => {}\n", select_clause);
+            //fmt::print("{}\n", get_table_join("R_DATA_MAIN", "R_RESC_MAIN"));
+
+            std::set<std::string> inner_joins;
+
+            for (auto&& s : sql_tables) {
+                for (auto&& t : sql_tables) {
+                    if (s == t) {
+                        continue;
+                    }
+
+                    // Ignore the first element of the sql_tables list. The first element is part of the
+                    // FROM clause.
+                    if (t == sql_tables.front()) {
+                        continue;
+                    }
+
+                    if (auto j = get_table_join(s, t); !j.empty()) {
+                        inner_joins.insert(j);
+                    }
+                }
+            }
+
+            if (inner_joins.size() != sql_tables.size() - 1) {
+                throw std::invalid_argument{"invalid general query"};
+            }
+
+            fmt::print("INNER JOINS ==> [{}]\n", fmt::join(inner_joins, "], ["));
             fmt::print("\n");
+
+            auto sql = select_clause;
+
+            if (!inner_joins.empty()) {
+                sql += fmt::format(" {}", fmt::join(inner_joins, " "));
+            }
+
+            // TODO The following SQL statements can be stored as a format string for reuse. Placeholders can
+            // be given names so that we can replace markers that match the same value.
+            //
+            // TODO Remember: Table aliases for R_OBJT_METAMAP and R_META_MAIN can be generated without needing
+            // to store them in the table_aliases container by simply concatenating the table alias of META_*_ATTR_*
+            // with a fixed string. Doing this will avoid alias collisions and allow the SQL-join strings to be
+            // captured in a hard-coded list.
+            if (add_joins_for_meta_data) {
+                // TODO Requires table alias for R_DATA_MAIN.
+
+                // select distinct d.data_id, c.coll_name, d.data_name, mmd.meta_attr_name, mmc.meta_attr_name
+                // from R_COLL_MAIN c                                                                                
+                // inner join R_DATA_MAIN d on c.coll_id = d.coll_id                                                 
+                // left join R_OBJT_METAMAP ommd on d.data_id = ommd.object_id                                       
+                // left join R_OBJT_METAMAP ommc on c.coll_id = ommc.object_id                                       
+                // left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id                                           
+                // left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id                                           
+                // where mmd.meta_attr_name = 'job' or                                                               
+                //       mmc.meta_attr_name = 'nope';                                                                
+                sql += " left join R_OBJT_METAMAP ommd on {{R_DATA_MAIN}}.data_id = ommd.object_id "
+                       "left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id";
+            }
+
+            if (add_joins_for_meta_coll) {
+                // TODO Requires table alias for R_COLL_MAIN.
+                sql += " left join R_OBJT_METAMAP ommc on {{R_COLL_MAIN}}.coll_id = ommc.object_id "
+                       "left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id";
+            }
+
+            if (add_joins_for_meta_resc) {
+                // TODO Requires table alias for R_RESC_MAIN.
+                sql += " left join R_OBJT_METAMAP ommr on {{R_RESC_MAIN}}.resc_id = ommr.object_id "
+                       "left join R_META_MAIN mmr on ommr.meta_id = mmr.meta_id";
+            }
+
+            if (add_joins_for_meta_user) {
+                // TODO Requires table alias for R_USER_MAIN.
+                sql += " left join R_OBJT_METAMAP ommu on {{R_USER_MAIN}}.user_id = ommu.object_id "
+                       "left join R_META_MAIN mmu on ommu.meta_id = mmu.meta_id";
+            }
+
+            if (!conds.empty()) {
+                sql += fmt::format(" where {}", conds);
+            }
+
+            fmt::print("generated SQL => [{}]\n", sql);
 
             return "";
         }
