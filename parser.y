@@ -162,7 +162,8 @@ list_of_identifiers:
 
 %%
 
-void gq::Parser::error(const location& location, const std::string& message) {
+void gq::Parser::error(const location& location, const std::string& message)
+{
     // TODO: improve error handling
     std::cerr << "Error: " << message << std::endl << "Error location: " << wrapper.location() << std::endl;
 }

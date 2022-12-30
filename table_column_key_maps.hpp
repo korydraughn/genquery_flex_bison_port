@@ -10,7 +10,7 @@ namespace irods::experimental::api::genquery
     {
         std::string_view table;
         std::string_view name;
-        int id = 0;
+        int id = 0; // TODO Remove at some point. It isn't needed.
 
         auto operator==(const column_info& _rhs) const noexcept -> bool
         {
@@ -44,7 +44,7 @@ namespace irods::experimental::api::genquery
         {"RESC_ZONE_NAME",       {"R_RESC_MAIN", "zone_name"}},
         {"RESC_TYPE_NAME",       {"R_RESC_MAIN", "resc_type_name"}},
         {"RESC_CLASS_NAME",      {"R_RESC_MAIN", "resc_class_name"}},
-        {"RESC_HOSTNAME",        {"R_RESC_MAIN", "resc_net"}}, // Alias for LOC
+        {"RESC_HOSTNAME",        {"R_RESC_MAIN", "resc_net"}}, // Known as LOC in legacy GenQuery.
         {"RESC_VAULT_PATH",      {"R_RESC_MAIN", "resc_def_path "}},
         {"RESC_FREE_SPACE",      {"R_RESC_MAIN", "free_space"}},
         {"RESC_FREE_SPACE_TIME", {"R_RESC_MAIN", "free_space_ts"}},
@@ -78,8 +78,8 @@ namespace irods::experimental::api::genquery
         {"DATA_MODIFY_TIME",    {"R_DATA_MAIN", "modify_ts"}},
         {"DATA_MODE",           {"R_DATA_MAIN", "data_mode"}},
         {"DATA_RESC_ID",        {"R_DATA_MAIN", "resc_id"}},
-        {"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}},
-        {"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}},
+        {"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}}, // What is this when there's a DATA_OWNER_NAME?
+        {"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}}, // What is this when there's a DATA_OWNER_ZONE?
 
         {"COLL_ID",          {"R_COLL_MAIN", "coll_id"}},
         {"COLL_NAME",        {"R_COLL_MAIN", "coll_name"}},
@@ -94,6 +94,8 @@ namespace irods::experimental::api::genquery
         {"COLL_TYPE",        {"R_COLL_MAIN", "coll_type"}},
         {"COLL_INFO1",       {"R_COLL_MAIN", "coll_info1"}},
         {"COLL_INFO2",       {"R_COLL_MAIN", "coll_info2"}},
+        {"COLL_USER_NAME",   {"R_USER_MAIN", "user_name"}}, // What is this when there's a COLL_OWNER_NAME?
+        {"COLL_USER_ZONE",   {"R_USER_MAIN", "zone_name"}}, // What is this when there's a COLL_OWNER_ZONE?
 
         {"META_DATA_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_DATA_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
@@ -126,18 +128,18 @@ namespace irods::experimental::api::genquery
         {"USER_GROUP_ID",   {"R_USER_GROUP", "group_user_id"}},
         {"USER_GROUP_NAME", {"R_USER_MAIN", "user_name"}},
 
-        {"RULE_EXEC_ID",                 {"R_RULE_EXEC", "rule_exec_id"}},
-        {"RULE_EXEC_NAME",               {"R_RULE_EXEC", "rule_name"}},
-        {"RULE_EXEC_REI_FILE_PATH",      {"R_RULE_EXEC", "rei_file_path"}},
-        {"RULE_EXEC_USER_NAME",          {"R_RULE_EXEC", "user_name"}},
-        {"RULE_EXEC_ADDRESS",            {"R_RULE_EXEC", "exe_address"}},
-        {"RULE_EXEC_TIME",               {"R_RULE_EXEC", "exe_time"}},
-        {"RULE_EXEC_FREQUENCY",          {"R_RULE_EXEC", "exe_frequency"}},
-        {"RULE_EXEC_PRIORITY",           {"R_RULE_EXEC", "priority"}},
-        {"RULE_EXEC_ESTIMATED_EXE_TIME", {"R_RULE_EXEC", "estimated_exe_time"}},
-        {"RULE_EXEC_NOTIFICATION_ADDR",  {"R_RULE_EXEC", "notification_addr"}},
-        {"RULE_EXEC_LAST_EXE_TIME",      {"R_RULE_EXEC", "last_exe_time"}},
-        {"RULE_EXEC_STATUS",             {"R_RULE_EXEC", "exe_status"}},
+        {"DELAY_RULE_ID",                 {"R_RULE_EXEC", "rule_exec_id"}},
+        {"DELAY_RULE_NAME",               {"R_RULE_EXEC", "rule_name"}},
+        {"DELAY_RULE_REI_FILE_PATH",      {"R_RULE_EXEC", "rei_file_path"}},
+        {"DELAY_RULE_USER_NAME",          {"R_RULE_EXEC", "user_name"}},
+        {"DELAY_RULE_EXE_ADDRESS",        {"R_RULE_EXEC", "exe_address"}},
+        {"DELAY_RULE_EXE_TIME",           {"R_RULE_EXEC", "exe_time"}},
+        {"DELAY_RULE_EXE_FREQUENCY",      {"R_RULE_EXEC", "exe_frequency"}},
+        {"DELAY_RULE_PRIORITY",           {"R_RULE_EXEC", "priority"}},
+        {"DELAY_RULE_ESTIMATED_EXE_TIME", {"R_RULE_EXEC", "estimated_exe_time"}},
+        {"DELAY_RULE_NOTIFICATION_ADDR",  {"R_RULE_EXEC", "notification_addr"}},
+        {"DELAY_RULE_LAST_EXE_TIME",      {"R_RULE_EXEC", "last_exe_time"}},
+        {"DELAY_RULE_STATUS",             {"R_RULE_EXEC", "exe_status"}},
 
         {"TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
         {"TOKEN_ID",        {"R_TOKN_MAIN", "token_id"}},
@@ -146,13 +148,6 @@ namespace irods::experimental::api::genquery
         {"TOKEN_VALUE2",    {"R_TOKN_MAIN", "token_value2"}},
         {"TOKEN_VALUE3",    {"R_TOKN_MAIN", "token_value3"}},
         {"TOKEN_COMMENT",   {"R_TOKN_MAIN", "r_comment"}},
-
-        // TODO These likely need table alias?
-        // What is the difference between COLL_USER_ZONE and COLL_ZONE_NAME?
-        // Perhaps, COLL_USER_ZONE is the zone the user is part of while COLL_ZONE_NAME
-        // is the zone name the collection is associated with.
-        {"COLL_USER_NAME", {"R_USER_MAIN", "user_name"}},
-        {"COLL_USER_ZONE", {"R_USER_MAIN", "zone_name"}},
 
         {"QUOTA_USER_ID",           {"R_QUOTA_MAIN", "user_id"}},
         {"QUOTA_RESC_ID",           {"R_QUOTA_MAIN", "resc_id"}},
@@ -205,7 +200,7 @@ namespace irods::experimental::api::genquery
         {"TICKET_COLL_NAME",               {"R_COLL_MAIN", "coll_name"}},
         {"TICKET_OWNER_NAME",              {"R_USER_MAIN", "user_name"}},
         {"TICKET_OWNER_ZONE",              {"R_USER_MAIN", "zone_name"}},
-        {"TICKET_DATA_COLL_NAME",          {"R_COLL_MAIN", "coll_name"}} // Includes join between R_DATA_MAIN and R_COLL_MAIN.
+        {"TICKET_DATA_COLL_NAME",          {"R_COLL_MAIN", "coll_name"}} // Includes join between R_DATA_MAIN and R_COLL_MAIN. What is this?
     }; // column_name_mappings
 } // namespace irods::experemental::api::genquery
 

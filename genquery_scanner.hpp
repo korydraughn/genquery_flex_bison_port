@@ -2,9 +2,9 @@
 #define IRODS_GENQUERY_SCANNER_HPP
 
 #ifndef yyFlexLexerOnce
-    #undef yyFlexLexer
-    #define yyFlexLexer Genquery_FlexLexer // the trick with prefix; no namespace here :(
-    #include <FlexLexer.h>
+#  undef yyFlexLexer
+#  define yyFlexLexer Genquery_FlexLexer // the trick with prefix; no namespace here :(
+#  include <FlexLexer.h>
 #endif
 
 #undef YY_DECL
