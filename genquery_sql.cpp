@@ -595,83 +595,32 @@ namespace irods::experimental::api::genquery
             // THOUGHTS:
             // Should there be a join table order?
             // Some tables don't care about order while others do.
-#if 1
             std::vector<std::string> inner_joins;
-            std::vector<std::string> already_joined;
+            inner_joins.reserve(sql_tables.size() - 1);
 
-            // Add all join-clauses that link against the first table.
-            // This is the special case.
-            for (auto iter = std::begin(sql_tables) + 1; iter != std::end(sql_tables); ++iter) {
-                if (auto j = get_table_join(sql_tables.front(), *iter); !j.empty()) {
-                    inner_joins.push_back(j);
-                    already_joined.push_back(std::string{*iter});
-                }
-            }
+            std::vector<std::string> remaining{std::begin(sql_tables) + 1, std::end(sql_tables)};
+            fmt::print("remaining = [{}]\n", fmt::join(remaining, ", "));
 
-            // At this point, no other table can join the table in the FROM clause.
-            // We can safely ignore the table in the FROM clause.
-            for (auto i = 0ull; i < sql_tables.size() - 1; ++i) {
-                const auto last = already_joined.back();
+            std::vector<std::string> processed;
+            processed.reserve(sql_tables.size());
+            processed.push_back(std::string{sql_tables.front()});
+            fmt::print("processed = [{}]\n", fmt::join(processed, ", "));
 
-                for (auto iter = std::begin(sql_tables) + 1; iter != std::end(sql_tables); ++iter) {
-                    if (contains(already_joined, *iter)) {
-                        continue;
-                    }
+            for (decltype(sql_tables.size()) i = 0; i < sql_tables.size() - 1; ++i) {
+                const auto& last = processed.back();
 
+                for (auto iter = std::begin(remaining); iter != std::end(remaining);) {
                     if (auto j = get_table_join(last, *iter); !j.empty()) {
-                        inner_joins.push_back(j);
-                        already_joined.push_back(std::string{*iter});
+                        inner_joins.push_back(std::move(j));
+                        processed.emplace_back(*iter);
+                        iter = remaining.erase(iter);
+                    }
+                    else {
+                        ++iter;
                     }
                 }
             }
-#elif 0
-            std::vector<std::string> inner_joins;
-            auto tables_remaining = sql_tables;
 
-            // Remove the first table as it is part of the FROM clause.
-            tables_remaining.erase(std::begin(tables_remaining));
-
-            while (!tables_remaining.empty()) {
-                // Prefer joins to table in FROM clause over secondary tables.
-                if (auto j = get_table_join(sql_tables.front(), tables_remaining.front()); !j.empty()) {
-                    inner_joins.push_back(j);
-                    tables_remaining.erase(std::begin(tables_remaining));
-                    continue;
-                }
-
-                for (auto iter = std::begin(tables_remaining); iter != std::end(tables_remaining); ++iter) {
-                    if (auto next = iter + 1; next == std::end(tables_remaining)) {
-                        continue;
-                    }
-
-                    if (auto j = get_table_join(*(iter + 1), *iter); !j.empty()) {
-                        inner_joins.push_back(j);
-                        tables_remaining.erase(iter);
-                        break;
-                    }
-                }
-            }
-#else
-            std::set<std::string> inner_joins;
-
-            for (auto&& s : sql_tables) {
-                for (auto&& t : sql_tables) {
-                    if (s == t) {
-                        continue;
-                    }
-
-                    // Ignore the first element of the sql_tables list. The first element is part of the
-                    // FROM clause.
-                    if (t == sql_tables.front()) {
-                        continue;
-                    }
-
-                    if (auto j = get_table_join(s, t); !j.empty()) {
-                        inner_joins.insert(j);
-                    }
-                }
-            }
-#endif
             std::for_each(std::begin(inner_joins), std::end(inner_joins), [](auto&& _j) {
                 fmt::print("INNER JOIN => {}\n", _j);
             });
