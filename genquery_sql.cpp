@@ -148,13 +148,15 @@ namespace
 
 namespace irods::experimental::api::genquery
 {
-    auto no_distinct_flag = false;
-    auto in_select_clause = false;
+    bool no_distinct_flag = false;
+    bool in_select_clause = false;
 
     bool add_joins_for_meta_data = false;
     bool add_joins_for_meta_coll = false;
     bool add_joins_for_meta_resc = false;
     bool add_joins_for_meta_user = false;
+
+    bool requested_resc_hier = false;
 
     std::vector<std::string> columns_for_select_clause;
     std::vector<std::string> columns_for_where_clause;
@@ -195,6 +197,9 @@ namespace irods::experimental::api::genquery
         if (iter == std::end(column_name_mappings)) {
             throw std::invalid_argument{fmt::format("unknown column: {}", column.name)};
         }
+
+        // TODO Handle DATA_RESC_HIER. It is a column that is derived from the relation
+        // between individual rows in R_RESC_MAIN.
 
         auto is_special_column = true;
         std::string_view sp_fmt_arg;
@@ -735,6 +740,7 @@ namespace irods::experimental::api::genquery
 
         with recursive T as (
             select
+                resc_id,
                 resc_name hier,
                 case
                     when resc_parent = '' then 0
@@ -743,11 +749,12 @@ namespace irods::experimental::api::genquery
             from
                 r_resc_main
             where
-                resc_id = 14471 -- <child_resource>
+                resc_id > 0     -- Or, resc_id = <child_resc_id>
 
             union all
 
             select
+                T.resc_id,
                 (U.resc_name || ';' || T.hier)::varchar(250),
                 case
                     when U.resc_parent = '' then 0
@@ -756,7 +763,7 @@ namespace irods::experimental::api::genquery
             from T
             inner join r_resc_main U on U.resc_id = T.parent_id
         )
-        select hier from T where parent_id = 0;
+        select resc_id, hier from T where parent_id = 0 and resc_id = <resc_id>;
 
     Q. Can this be used with other queries?
  */

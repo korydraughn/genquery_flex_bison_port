@@ -78,6 +78,7 @@ namespace irods::experimental::api::genquery
         {"DATA_MODIFY_TIME",    {"R_DATA_MAIN", "modify_ts"}},
         {"DATA_MODE",           {"R_DATA_MAIN", "data_mode"}},
         {"DATA_RESC_ID",        {"R_DATA_MAIN", "resc_id"}},
+        {"DATA_RESC_HIER",      {"", ""}}, // No direct mapping. Derived via SQL.
         {"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}}, // What is this when there's a DATA_OWNER_NAME?
         {"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}}, // What is this when there's a DATA_OWNER_ZONE?
 
