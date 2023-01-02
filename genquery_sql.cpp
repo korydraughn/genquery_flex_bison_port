@@ -727,3 +727,36 @@ namespace irods::experimental::api::genquery
         return "";
     }
 } // namespace irods::experimental::api::genquery
+
+/*
+    The following query will produce a resource hierarchy starting from a leaf resource ID.
+    Keep in mind that the ::<type> syntax may be specific to PostgreSQL. Remember to check the
+    other database systems for compatibility.
+
+        with recursive T as (
+            select
+                resc_name hier,
+                case
+                    when resc_parent = '' then 0
+                    else resc_parent::bigint
+                end parent_id
+            from
+                r_resc_main
+            where
+                resc_id = 14471 -- <child_resource>
+
+            union all
+
+            select
+                (U.resc_name || ';' || T.hier)::varchar(250),
+                case
+                    when U.resc_parent = '' then 0
+                    else U.resc_parent::bigint
+                end parent_id
+            from T
+            inner join r_resc_main U on U.resc_id = T.parent_id
+        )
+        select hier from T where parent_id = 0;
+
+    Q. Can this be used with other queries?
+ */
