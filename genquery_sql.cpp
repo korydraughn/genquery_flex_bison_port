@@ -721,6 +721,11 @@ namespace irods::experimental::api::genquery
                                    select.order_by.ascending_order ? "asc" : "desc");
             }
 
+            std::for_each(std::begin(values), std::end(values), [](auto&& _j) {
+                fmt::print("BINDABLE VALUE => {}\n", _j);
+            });
+            fmt::print("\n");
+
             fmt::print("GENERATED SQL => [{}]\n", sql);
 
             return "";
