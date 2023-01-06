@@ -62,10 +62,13 @@ This option causes make_* functions to be generated for each token kind.
 %define api.token.prefix {GENQUERY_TOKEN_}
 
 %token <std::string> IDENTIFIER STRING_LITERAL
-%token SELECT NO_DISTINCT WHERE AND OR COMMA PAREN_OPEN PAREN_CLOSE
+%token SELECT DISTINCT NO_DISTINCT WHERE AND OR COMMA PAREN_OPEN PAREN_CLOSE
 %token BETWEEN EQUAL NOT_EQUAL BEGINNING_OF LIKE IN PARENT_OF
 %token LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
 %token CONDITION_NOT ORDER BY ASC DESC
+%token OFFSET FETCH FIRST ROWS ONLY
+%token CASE WHEN ELSE END
+%token GROUP HAVING EXISTS IS NULL
 %token END_OF_INPUT 0
 
 /*
@@ -141,7 +144,7 @@ condition:
 condition_expression:
     LIKE STRING_LITERAL  { $$ = gq::ConditionLike(std::move($2)); }
   | IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::ConditionIn(std::move($3)); }
-  | BETWEEN STRING_LITERAL STRING_LITERAL { $$ = gq::ConditionBetween(std::move($2), std::move($3)); }
+  | BETWEEN STRING_LITERAL AND STRING_LITERAL { $$ = gq::ConditionBetween(std::move($2), std::move($4)); }
   | EQUAL STRING_LITERAL  { $$ = gq::ConditionEqual(std::move($2)); }
   | NOT_EQUAL STRING_LITERAL  { $$ = gq::ConditionNotEqual(std::move($2)); }
   | LESS_THAN STRING_LITERAL  { $$ = gq::ConditionLessThan(std::move($2)); }
@@ -150,7 +153,7 @@ condition_expression:
   | GREATER_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionGreaterThanOrEqualTo(std::move($2)); }
   | PARENT_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionParentOf(std::move($3)); }
   | BEGINNING_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionBeginningOf(std::move($3)); }
-  | CONDITION_NOT condition_expression  { $$ = gq::ConditionOperator_Not(std::move($2)); }
+  | CONDITION_NOT condition_expression  { $$ = gq::ConditionOperator_Not(std::move($2)); } /* FIXME This allows: column not = 'value' */
 
 list_of_string_literals:
     STRING_LITERAL  { $$ = std::vector<std::string>{std::move($1)}; }
