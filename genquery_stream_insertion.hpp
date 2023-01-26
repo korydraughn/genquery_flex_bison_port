@@ -106,18 +106,6 @@ namespace irods::experimental::api::genquery
     }
 
     template <typename T>
-    T& operator<<(T& os, const ConditionParentOf& parent_of)
-    {
-        return os << "parent_of '" << parent_of.string_literal << "'";
-    }
-
-    template <typename T>
-    T& operator<<(T& os, const ConditionBeginningOf& beginning_of)
-    {
-        return os << "begin_of '" << beginning_of.string_literal << "'";
-    }
-
-    template <typename T>
     T& operator<<(T& os, const Condition& condition)
     {
         return os << condition.column << " " << condition.expression;

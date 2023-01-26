@@ -88,20 +88,6 @@ namespace irods::experimental::api::genquery
         std::string string_literal;
     };
 
-    struct ConditionParentOf {
-        ConditionParentOf() = default;
-        explicit ConditionParentOf(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
-        std::string string_literal;
-    };
-
-    struct ConditionBeginningOf {
-        ConditionBeginningOf() = default;
-        explicit ConditionBeginningOf(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
-        std::string string_literal;
-    };
-
     struct ConditionIsNull
     {
     };
@@ -121,8 +107,6 @@ namespace irods::experimental::api::genquery
                                                ConditionLessThanOrEqualTo,
                                                ConditionGreaterThan,
                                                ConditionGreaterThanOrEqualTo,
-                                               ConditionParentOf,
-                                               ConditionBeginningOf,
                                                ConditionIsNull,
                                                ConditionIsNotNull,
                                                boost::recursive_wrapper<ConditionOperator_Not>>;
@@ -192,9 +176,6 @@ namespace irods::experimental::api::genquery
         Select(Selections selections, Conditions conditions)
             : selections(std::move(selections))
             , conditions(std::move(conditions))
-            , order_by{}
-            , range{}
-            , no_distinct{}
         {
         }
 
@@ -202,7 +183,7 @@ namespace irods::experimental::api::genquery
         Conditions conditions;
         order_by order_by;
         range range;
-        bool no_distinct;
+        bool distinct = true;
     };
 } // namespace irods::experimental::api::genquery
 

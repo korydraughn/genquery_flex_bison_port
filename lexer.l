@@ -26,8 +26,8 @@
 (?i:like)              return gq::Parser::make_LIKE(gq::location());
 (?i:in)                return gq::Parser::make_IN(gq::location());
 (?i:between)           return gq::Parser::make_BETWEEN(gq::location());
+(?i:no)                return gq::Parser::make_NO(gq::location());
 (?i:distinct)          return gq::Parser::make_DISTINCT(gq::location());
-(?i:no-distinct)       return gq::Parser::make_NO_DISTINCT(gq::location());
 (?i:order)             return gq::Parser::make_ORDER(gq::location());
 (?i:by)                return gq::Parser::make_BY(gq::location());
 (?i:asc)               return gq::Parser::make_ASC(gq::location());
@@ -46,6 +46,9 @@
 (?i:exists)            return gq::Parser::make_EXISTS(gq::location());
 (?i:is)                return gq::Parser::make_IS(gq::location());
 (?i:null)              return gq::Parser::make_NULL(gq::location());
+(?i:not)               return gq::Parser::make_NOT(gq::location());
+(?i:and)               return gq::Parser::make_AND(gq::location());
+(?i:or)                return gq::Parser::make_OR(gq::location());
 "="                    return gq::Parser::make_EQUAL(gq::location());
 "!="                   return gq::Parser::make_NOT_EQUAL(gq::location());
 "<>"                   return gq::Parser::make_NOT_EQUAL(gq::location());
@@ -53,15 +56,11 @@
 "<="                   return gq::Parser::make_LESS_THAN_OR_EQUAL_TO(gq::location());
 ">"                    return gq::Parser::make_GREATER_THAN(gq::location());
 ">="                   return gq::Parser::make_GREATER_THAN_OR_EQUAL_TO(gq::location());
-(?i:begin_of)          return gq::Parser::make_BEGINNING_OF(gq::location());
-(?i:parent_of)         return gq::Parser::make_PARENT_OF(gq::location());
-(?i:not)               return gq::Parser::make_NOT(gq::location());
-(?i:and)               return gq::Parser::make_AND(gq::location());
-(?i:or)                return gq::Parser::make_OR(gq::location());
 ,                      return gq::Parser::make_COMMA(gq::location());
 "("                    return gq::Parser::make_PAREN_OPEN(gq::location());
 ")"                    return gq::Parser::make_PAREN_CLOSE(gq::location());
 [a-zA-Z][a-zA-Z0-9_]*  return gq::Parser::make_IDENTIFIER(yytext, gq::location());
+[0-9]+                 return gq::Parser::make_POSITIVE_INTEGER(yytext, gq::location());
 -?[0-9]+               return gq::Parser::make_INTEGER(yytext, gq::location());
 .                      std::cerr << "scanner: unknown character [" << yytext << "]\n"; // TODO: improve error handling
 <<EOF>>                return yyterminate();

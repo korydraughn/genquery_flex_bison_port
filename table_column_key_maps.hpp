@@ -10,11 +10,10 @@ namespace irods::experimental::api::genquery
     {
         std::string_view table;
         std::string_view name;
-        int id = 0; // TODO Remove at some point. It isn't needed.
 
         auto operator==(const column_info& _rhs) const noexcept -> bool
         {
-            return table == _rhs.table && name == _rhs.name && id == _rhs.id;
+            return table == _rhs.table && name == _rhs.name;
         }
     }; // struct column_info
 
@@ -105,29 +104,29 @@ namespace irods::experimental::api::genquery
         {"META_DATA_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
         {"META_DATA_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
-        {"META_COLL_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name", 1}},
-        {"META_COLL_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value", 1}},
-        {"META_COLL_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit", 1}},
-        {"META_COLL_ATTR_ID",     {"R_META_MAIN", "meta_id", 1}},
-        {"META_COLL_CREATE_TIME", {"R_META_MAIN", "create_ts", 1}},
-        {"META_COLL_MODIFY_TIME", {"R_META_MAIN", "modify_ts", 1}},
+        {"META_COLL_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
+        {"META_COLL_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
+        {"META_COLL_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
+        {"META_COLL_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
+        {"META_COLL_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
+        {"META_COLL_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
-        {"META_RESC_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name", 2}},
-        {"META_RESC_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value", 2}},
-        {"META_RESC_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit", 2}},
-        {"META_RESC_ATTR_ID",     {"R_META_MAIN", "meta_id", 2}},
-        {"META_RESC_CREATE_TIME", {"R_META_MAIN", "create_ts", 2}},
-        {"META_RESC_MODIFY_TIME", {"R_META_MAIN", "modify_ts", 2}},
+        {"META_RESC_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
+        {"META_RESC_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
+        {"META_RESC_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
+        {"META_RESC_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
+        {"META_RESC_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
+        {"META_RESC_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
-        {"META_USER_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name", 3}},
-        {"META_USER_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value", 3}},
-        {"META_USER_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit", 3}},
-        {"META_USER_ATTR_ID",     {"R_META_MAIN", "meta_id", 3}},
-        {"META_USER_CREATE_TIME", {"R_META_MAIN", "create_ts", 3}},
-        {"META_USER_MODIFY_TIME", {"R_META_MAIN", "modify_ts", 3}},
+        {"META_USER_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
+        {"META_USER_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
+        {"META_USER_ATTR_UNITS",  {"R_META_MAIN", "meta_attr_unit"}},
+        {"META_USER_ATTR_ID",     {"R_META_MAIN", "meta_id"}},
+        {"META_USER_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
+        {"META_USER_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
-        {"USER_GROUP_ID",   {"R_USER_GROUP", "group_user_id"}},
-        {"USER_GROUP_NAME", {"R_USER_MAIN", "user_name"}},
+        {"USER_GROUP_ID",   {"R_USER_GROUP", "group_user_id"}}, // TODO special?
+        {"USER_GROUP_NAME", {"R_USER_MAIN", "user_name"}}, // TODO special?
 
         {"DELAY_RULE_ID",                 {"R_RULE_EXEC", "rule_exec_id"}},
         {"DELAY_RULE_NAME",               {"R_RULE_EXEC", "rule_name"}},
@@ -159,22 +158,22 @@ namespace irods::experimental::api::genquery
         {"QUOTA_USAGE_RESC_ID",     {"R_QUOTA_USAGE", "resc_id"}},
         {"QUOTA_USAGE",             {"R_QUOTA_USAGE", "quota_usage"}},
         {"QUOTA_USAGE_MODIFY_TIME", {"R_QUOTA_USAGE", "modify_ts"}},
-        {"QUOTA_USER_NAME",         {"R_USER_MAIN", "user_name"}},
-        {"QUOTA_USER_TYPE",         {"R_USER_MAIN", "user_type_name"}},
-        {"QUOTA_USER_ZONE",         {"R_USER_MAIN", "zone_name"}},
-        {"QUOTA_RESC_NAME",         {"R_RESC_MAIN", "resc_name"}},
+        {"QUOTA_USER_NAME",         {"R_USER_MAIN", "user_name"}}, // TODO special?
+        {"QUOTA_USER_TYPE",         {"R_USER_MAIN", "user_type_name"}}, // TODO special?
+        {"QUOTA_USER_ZONE",         {"R_USER_MAIN", "zone_name"}}, // TODO special?
+        {"QUOTA_RESC_NAME",         {"R_RESC_MAIN", "resc_name"}}, // TODO special?
 
         {"DATA_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
         {"DATA_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
         {"DATA_ACCESS_DATA_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"DATA_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"DATA_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
+        {"DATA_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}}, // TODO special?
+        {"DATA_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}}, // TODO special?
 
         {"COLL_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
         {"COLL_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
         {"COLL_ACCESS_COLL_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"COLL_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}},
-        {"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
+        {"COLL_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}}, // TODO special?
+        {"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}}, // TODO special?
 
         {"TICKET_ID",                      {"R_TICKET_MAIN", "ticket_id"}},
         {"TICKET_STRING",                  {"R_TICKET_MAIN", "ticket_string"}},
@@ -197,10 +196,10 @@ namespace irods::experimental::api::genquery
         {"TICKET_ALLOWED_USER_TICKET_ID",  {"R_TICKET_ALLOWED_USERS", "ticket_id"}},
         {"TICKET_ALLOWED_GROUP_NAME",      {"R_TICKET_ALLOWED_GROUPS", "group_name"}},
         {"TICKET_ALLOWED_GROUP_TICKET_ID", {"R_TICKET_ALLOWED_GROUPS", "ticket_id"}},
-        {"TICKET_DATA_NAME",               {"R_DATA_MAIN", "data_name"}},
-        {"TICKET_COLL_NAME",               {"R_COLL_MAIN", "coll_name"}},
-        {"TICKET_OWNER_NAME",              {"R_USER_MAIN", "user_name"}},
-        {"TICKET_OWNER_ZONE",              {"R_USER_MAIN", "zone_name"}},
+        {"TICKET_DATA_NAME",               {"R_DATA_MAIN", "data_name"}}, // TODO special?
+        {"TICKET_COLL_NAME",               {"R_COLL_MAIN", "coll_name"}}, // TODO special?
+        {"TICKET_OWNER_NAME",              {"R_USER_MAIN", "user_name"}}, // TODO special?
+        {"TICKET_OWNER_ZONE",              {"R_USER_MAIN", "zone_name"}}, // TODO special?
         {"TICKET_DATA_COLL_NAME",          {"R_COLL_MAIN", "coll_name"}} // Includes join between R_DATA_MAIN and R_COLL_MAIN. What is this?
     }; // column_name_mappings
 } // namespace irods::experemental::api::genquery

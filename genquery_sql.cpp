@@ -148,7 +148,6 @@ namespace
 
 namespace irods::experimental::api::genquery
 {
-    bool no_distinct_flag = false;
     bool in_select_clause = false;
 
     bool add_joins_for_meta_data = false;
@@ -440,18 +439,6 @@ namespace irods::experimental::api::genquery
         return " like ?";
     }
 
-    std::string sql(const ConditionParentOf& parent_of)
-    {
-        values.push_back(parent_of.string_literal);
-        return " parent_of ?"; // TODO Is this valid SQL?
-    }
-
-    std::string sql(const ConditionBeginningOf& beginning_of)
-    {
-        values.push_back(beginning_of.string_literal);
-        return " beginning_of ?"; // TODO Is this valid SQL?
-    }
-
     std::string sql(const ConditionIsNull&)
     {
         return " is null";
@@ -578,7 +565,8 @@ namespace irods::experimental::api::genquery
             //
             // The tables stored in sql_tables must be directly joinable to at least one other table in
             // the sql_tables list. This step is NOT allowed to introduce intermediate tables.
-            auto select_clause = fmt::format("select {columns} from {table} {alias}",
+            auto select_clause = fmt::format("select {distinct}{columns} from {table} {alias}",
+                                             fmt::arg("distinct", select.distinct ? "distinct " : ""),
                                              fmt::arg("columns", fmt::join(columns_for_select_clause, ", ")),
                                              fmt::arg("table", sql_tables.front()),
                                              fmt::arg("alias", table_aliases.at(std::string{sql_tables.front()})));

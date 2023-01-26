@@ -60,9 +60,9 @@ This option causes make_* functions to be generated for each token kind.
 
 %define api.token.prefix {GENQUERY_TOKEN_}
 
-%token <std::string> IDENTIFIER STRING_LITERAL INTEGER
-%token SELECT DISTINCT NO_DISTINCT WHERE NOT AND OR COMMA PAREN_OPEN PAREN_CLOSE
-%token BETWEEN EQUAL NOT_EQUAL BEGINNING_OF LIKE IN PARENT_OF
+%token <std::string> IDENTIFIER STRING_LITERAL POSITIVE_INTEGER INTEGER
+%token SELECT NO DISTINCT WHERE NOT AND OR COMMA PAREN_OPEN PAREN_CLOSE
+%token BETWEEN EQUAL NOT_EQUAL LIKE IN
 %token LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
 %token ORDER BY ASC DESC
 %token OFFSET FETCH FIRST ROWS ONLY
@@ -113,19 +113,19 @@ genquery:
 select:
     SELECT selections  { std::swap(wrapper._select.selections, $2); }
   | SELECT selections WHERE conditions  { std::swap(wrapper._select.selections, $2); std::swap(wrapper._select.conditions, $4); }
-  | SELECT NO_DISTINCT selections  { wrapper._select.no_distinct = true; std::swap(wrapper._select.selections, $3); }
-  | SELECT NO_DISTINCT selections WHERE conditions  { wrapper._select.no_distinct = true; std::swap(wrapper._select.selections, $3); std::swap(wrapper._select.conditions, $5); }
+  | SELECT NO DISTINCT selections  { wrapper._select.distinct = false; std::swap(wrapper._select.selections, $4); }
+  | SELECT NO DISTINCT selections WHERE conditions  { wrapper._select.distinct = false; std::swap(wrapper._select.selections, $4); std::swap(wrapper._select.conditions, $6); }
 
 order_by:
     ORDER BY list_of_identifiers  { std::swap($$.columns, $3); }
-  | ORDER BY list_of_identifiers ASC { std::swap($$.columns, $3); }
-  | ORDER BY list_of_identifiers DESC { std::swap($$.columns, $3); $$.ascending_order = false; }
+  | ORDER BY list_of_identifiers ASC  { std::swap($$.columns, $3); }
+  | ORDER BY list_of_identifiers DESC  { std::swap($$.columns, $3); $$.ascending_order = false; }
 
 range:
-    OFFSET INTEGER  { std::swap($$.offset, $2); }
-  | OFFSET INTEGER FETCH FIRST INTEGER ROWS ONLY  { std::swap($$.offset, $2); std::swap($$.number_of_rows, $5); }
-  | FETCH FIRST INTEGER ROWS ONLY  { std::swap($$.number_of_rows, $3); }
-  | FETCH FIRST INTEGER ROWS ONLY OFFSET INTEGER  { std::swap($$.offset, $7); std::swap($$.number_of_rows, $3); }
+    OFFSET POSITIVE_INTEGER  { std::swap($$.offset, $2); }
+  | OFFSET POSITIVE_INTEGER FETCH FIRST POSITIVE_INTEGER ROWS ONLY  { std::swap($$.offset, $2); std::swap($$.number_of_rows, $5); }
+  | FETCH FIRST POSITIVE_INTEGER ROWS ONLY  { std::swap($$.number_of_rows, $3); }
+  | FETCH FIRST POSITIVE_INTEGER ROWS ONLY OFFSET POSITIVE_INTEGER  { std::swap($$.offset, $7); std::swap($$.number_of_rows, $3); }
 
 selections:
     selection  { $$ = gq::Selections{std::move($1)}; }
@@ -152,19 +152,19 @@ condition:
 
 condition_expression:
     LIKE STRING_LITERAL  { $$ = gq::ConditionLike(std::move($2)); }
+  | NOT LIKE STRING_LITERAL  { $$ = gq::ConditionOperator_Not{gq::ConditionLike(std::move($3))}; }
   | IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::ConditionIn(std::move($3)); }
-  | BETWEEN STRING_LITERAL AND STRING_LITERAL { $$ = gq::ConditionBetween(std::move($2), std::move($4)); }
+  | NOT IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::ConditionOperator_Not{gq::ConditionIn(std::move($4))}; }
+  | BETWEEN STRING_LITERAL AND STRING_LITERAL  { $$ = gq::ConditionBetween(std::move($2), std::move($4)); }
+  | NOT BETWEEN STRING_LITERAL AND STRING_LITERAL  { $$ = gq::ConditionOperator_Not{gq::ConditionBetween(std::move($3), std::move($5))}; }
   | EQUAL STRING_LITERAL  { $$ = gq::ConditionEqual(std::move($2)); }
   | NOT_EQUAL STRING_LITERAL  { $$ = gq::ConditionNotEqual(std::move($2)); }
   | LESS_THAN STRING_LITERAL  { $$ = gq::ConditionLessThan(std::move($2)); }
   | LESS_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionLessThanOrEqualTo(std::move($2)); }
   | GREATER_THAN STRING_LITERAL  { $$ = gq::ConditionGreaterThan(std::move($2)); }
   | GREATER_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionGreaterThanOrEqualTo(std::move($2)); }
-  | PARENT_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionParentOf(std::move($3)); }
-  | BEGINNING_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionBeginningOf(std::move($3)); }
   | IS NULL  { $$ = gq::ConditionIsNull(); }
   | IS NOT NULL  { $$ = gq::ConditionIsNotNull(); }
-  | NOT condition_expression  { $$ = gq::ConditionOperator_Not(std::move($2)); } /* FIXME This allows: column not = 'value' */
 
 list_of_string_literals:
     STRING_LITERAL  { $$ = std::vector<std::string>{std::move($1)}; }
@@ -179,5 +179,5 @@ list_of_identifiers:
 void gq::Parser::error(const location& location, const std::string& message)
 {
     // TODO: improve error handling
-    std::cerr << "Error: " << message << std::endl << "Error location: " << wrapper.location() << std::endl;
+    std::cerr << "Error: " << message << "\nError location: " << wrapper.location() << '\n';
 }
