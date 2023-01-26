@@ -452,6 +452,16 @@ namespace irods::experimental::api::genquery
         return " beginning_of ?"; // TODO Is this valid SQL?
     }
 
+    std::string sql(const ConditionIsNull&)
+    {
+        return " is null";
+    }
+
+    std::string sql(const ConditionIsNotNull&)
+    {
+        return " is not null";
+    }
+
     std::string sql(const Condition& condition)
     {
         return fmt::format("{}{}", sql(condition.column), boost::apply_visitor(sql_visitor(), condition.expression));
@@ -719,6 +729,14 @@ namespace irods::experimental::api::genquery
                 sql += fmt::format(" order by {} {}",
                                    fmt::join(columns, ", "),
                                    select.order_by.ascending_order ? "asc" : "desc");
+            }
+
+            if (!select.range.offset.empty()) {
+                sql += fmt::format(" offset {}", select.range.offset);
+            }
+
+            if (!select.range.number_of_rows.empty()) {
+                sql += fmt::format(" fetch first {} rows only", select.range.number_of_rows);
             }
 
             std::for_each(std::begin(values), std::end(values), [](auto&& _j) {

@@ -55,13 +55,14 @@
 ">="                   return gq::Parser::make_GREATER_THAN_OR_EQUAL_TO(gq::location());
 (?i:begin_of)          return gq::Parser::make_BEGINNING_OF(gq::location());
 (?i:parent_of)         return gq::Parser::make_PARENT_OF(gq::location());
-(?i:not)               return gq::Parser::make_CONDITION_NOT(gq::location());
+(?i:not)               return gq::Parser::make_NOT(gq::location());
 (?i:and)               return gq::Parser::make_AND(gq::location());
 (?i:or)                return gq::Parser::make_OR(gq::location());
 ,                      return gq::Parser::make_COMMA(gq::location());
 "("                    return gq::Parser::make_PAREN_OPEN(gq::location());
 ")"                    return gq::Parser::make_PAREN_CLOSE(gq::location());
 [a-zA-Z][a-zA-Z0-9_]*  return gq::Parser::make_IDENTIFIER(yytext, gq::location());
+-?[0-9]+               return gq::Parser::make_INTEGER(yytext, gq::location());
 .                      std::cerr << "scanner: unknown character [" << yytext << "]\n"; // TODO: improve error handling
 <<EOF>>                return yyterminate();
 

@@ -102,6 +102,14 @@ namespace irods::experimental::api::genquery
         std::string string_literal;
     };
 
+    struct ConditionIsNull
+    {
+    };
+
+    struct ConditionIsNotNull
+    {
+    };
+
     struct ConditionOperator_Not;
 
     using ConditionExpression = boost::variant<ConditionLike,
@@ -115,6 +123,8 @@ namespace irods::experimental::api::genquery
                                                ConditionGreaterThanOrEqualTo,
                                                ConditionParentOf,
                                                ConditionBeginningOf,
+                                               ConditionIsNull,
+                                               ConditionIsNotNull,
                                                boost::recursive_wrapper<ConditionOperator_Not>>;
 
     struct ConditionOperator_Not {
@@ -167,15 +177,23 @@ namespace irods::experimental::api::genquery
     {
         std::vector<std::string> columns;
         bool ascending_order = true;
-    }; // class order_by
+    }; // struct order_by
 
-    struct Select {
+    struct range
+    {
+        std::string offset;
+        std::string number_of_rows;
+    }; // struct range
+
+    struct Select
+    {
         Select() = default;
 
         Select(Selections selections, Conditions conditions)
             : selections(std::move(selections))
             , conditions(std::move(conditions))
             , order_by{}
+            , range{}
             , no_distinct{}
         {
         }
@@ -183,6 +201,7 @@ namespace irods::experimental::api::genquery
         Selections selections;
         Conditions conditions;
         order_by order_by;
+        range range;
         bool no_distinct;
     };
 } // namespace irods::experimental::api::genquery

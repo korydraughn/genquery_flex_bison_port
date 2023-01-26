@@ -4,8 +4,7 @@
 %defines /* Doesn't work in version 3.0 - %header */
 
 /* The name of the parser class. Defaults to "parser" in C++. */
-/* Doesn't work in version 3.0 - %define api.parser.class { Parser } */
-%define parser_class_name { Parser }
+%define api.parser.class { Parser }
 
 /*
 Request that symbols be handled as a whole (type, value, and possibly location)
@@ -61,11 +60,11 @@ This option causes make_* functions to be generated for each token kind.
 
 %define api.token.prefix {GENQUERY_TOKEN_}
 
-%token <std::string> IDENTIFIER STRING_LITERAL
-%token SELECT DISTINCT NO_DISTINCT WHERE AND OR COMMA PAREN_OPEN PAREN_CLOSE
+%token <std::string> IDENTIFIER STRING_LITERAL INTEGER
+%token SELECT DISTINCT NO_DISTINCT WHERE NOT AND OR COMMA PAREN_OPEN PAREN_CLOSE
 %token BETWEEN EQUAL NOT_EQUAL BEGINNING_OF LIKE IN PARENT_OF
 %token LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
-%token CONDITION_NOT ORDER BY ASC DESC
+%token ORDER BY ASC DESC
 %token OFFSET FETCH FIRST ROWS ONLY
 %token CASE WHEN ELSE END
 %token GROUP HAVING EXISTS IS NULL
@@ -78,7 +77,7 @@ This option causes make_* functions to be generated for each token kind.
 
 Operator precedence is determined by the line ordering of the declarations. 
 The further down the page the line is, the higher the precedence. For example,
-CONDITION_NOT has higher precedence than CONDITION_AND.
+NOT has higher precedence than AND.
 
 While these directives support specifying a semantic type, Bison recommends not
 doing that and using these directives to specify precedence and associativity
@@ -86,11 +85,12 @@ rules only.
 */
 %left OR
 %left AND
-%precedence CONDITION_NOT
+%precedence NOT
 
 %type<gq::Selections> selections;
 %type<gq::Conditions> conditions;
 %type<gq::order_by> order_by;
+%type<gq::range> range;
 %type<gq::Selection> selection;
 %type<gq::Column> column;
 %type<gq::SelectFunction> select_function;
@@ -106,6 +106,9 @@ rules only.
 genquery:
     select
   | select order_by  { std::swap(wrapper._select.order_by, $2); }
+  | select range  { std::swap(wrapper._select.range, $2); }
+  | select order_by range  { std::swap(wrapper._select.order_by, $2); std::swap(wrapper._select.range, $3); }
+  | select range order_by  { std::swap(wrapper._select.order_by, $3); std::swap(wrapper._select.range, $2); }
 
 select:
     SELECT selections  { std::swap(wrapper._select.selections, $2); }
@@ -117,6 +120,12 @@ order_by:
     ORDER BY list_of_identifiers  { std::swap($$.columns, $3); }
   | ORDER BY list_of_identifiers ASC { std::swap($$.columns, $3); }
   | ORDER BY list_of_identifiers DESC { std::swap($$.columns, $3); $$.ascending_order = false; }
+
+range:
+    OFFSET INTEGER  { std::swap($$.offset, $2); }
+  | OFFSET INTEGER FETCH FIRST INTEGER ROWS ONLY  { std::swap($$.offset, $2); std::swap($$.number_of_rows, $5); }
+  | FETCH FIRST INTEGER ROWS ONLY  { std::swap($$.number_of_rows, $3); }
+  | FETCH FIRST INTEGER ROWS ONLY OFFSET INTEGER  { std::swap($$.offset, $7); std::swap($$.number_of_rows, $3); }
 
 selections:
     selection  { $$ = gq::Selections{std::move($1)}; }
@@ -153,7 +162,9 @@ condition_expression:
   | GREATER_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionGreaterThanOrEqualTo(std::move($2)); }
   | PARENT_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionParentOf(std::move($3)); }
   | BEGINNING_OF PAREN_OPEN STRING_LITERAL PAREN_CLOSE  { $$ = gq::ConditionBeginningOf(std::move($3)); }
-  | CONDITION_NOT condition_expression  { $$ = gq::ConditionOperator_Not(std::move($2)); } /* FIXME This allows: column not = 'value' */
+  | IS NULL  { $$ = gq::ConditionIsNull(); }
+  | IS NOT NULL  { $$ = gq::ConditionIsNotNull(); }
+  | NOT condition_expression  { $$ = gq::ConditionOperator_Not(std::move($2)); } /* FIXME This allows: column not = 'value' */
 
 list_of_string_literals:
     STRING_LITERAL  { $$ = std::vector<std::string>{std::move($1)}; }
