@@ -154,6 +154,7 @@ namespace irods::experimental::api::genquery
     bool add_joins_for_meta_coll = false;
     bool add_joins_for_meta_resc = false;
     bool add_joins_for_meta_user = false;
+    bool add_sql_for_data_resc_hier = false;
 
     bool requested_resc_hier = false;
 
@@ -208,6 +209,7 @@ namespace irods::experimental::api::genquery
         else if (column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; sp_fmt_arg = "mmc"; }
         else if (column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; sp_fmt_arg = "mmr"; }
         else if (column.name.starts_with("META_U")) { add_joins_for_meta_user = true; sp_fmt_arg = "mmu"; }
+        else if (column.name == "DATA_RESC_HIER")   { add_sql_for_data_resc_hier = true; sp_fmt_arg = "T"; }
         else                                        { is_special_column = false; }
         // clang-format on
 
@@ -228,7 +230,7 @@ namespace irods::experimental::api::genquery
                         table_aliases["R_COLL_MAIN"] = generate_table_alias();
                     }
                 }
-                else if (column.name.starts_with("META_R")) {
+                else if (column.name.starts_with("META_R") || column.name == "DATA_RESC_HIER") {
                     if (!contains(sql_tables, "R_RESC_MAIN")) {
                         sql_tables.emplace_back("R_RESC_MAIN");
                         table_aliases["R_RESC_MAIN"] = generate_table_alias();
@@ -278,6 +280,7 @@ namespace irods::experimental::api::genquery
         else if (select_function.column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; sp_fmt_arg = "mmc"; }
         else if (select_function.column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; sp_fmt_arg = "mmr"; }
         else if (select_function.column.name.starts_with("META_U")) { add_joins_for_meta_user = true; sp_fmt_arg = "mmu"; }
+        else if (select_function.column.name == "DATA_RESC_HIER")   { add_sql_for_data_resc_hier = true; sp_fmt_arg = "T"; }
         else                                                        { is_special_column = false; }
         // clang-format on
 
@@ -298,7 +301,7 @@ namespace irods::experimental::api::genquery
                         table_aliases["R_COLL_MAIN"] = generate_table_alias();
                     }
                 }
-                else if (select_function.column.name.starts_with("META_R")) {
+                else if (select_function.column.name.starts_with("META_R") || select_function.column.name == "DATA_RESC_HIER") {
                     if (!contains(sql_tables, "R_RESC_MAIN")) {
                         sql_tables.emplace_back("R_RESC_MAIN");
                         table_aliases["R_RESC_MAIN"] = generate_table_alias();
@@ -529,10 +532,13 @@ namespace irods::experimental::api::genquery
             });
             fmt::print("\n");
 
-            fmt::print("requires metadata table joins for R_DATA_MAIN? {}\n", (add_joins_for_meta_data == true));
-            fmt::print("requires metadata table joins for R_COLL_MAIN? {}\n", (add_joins_for_meta_coll == true));
-            fmt::print("requires metadata table joins for R_RESC_MAIN? {}\n", (add_joins_for_meta_resc == true));
-            fmt::print("requires metadata table joins for R_USER_MAIN? {}\n", (add_joins_for_meta_user == true));
+            fmt::print("requires metadata table joins for R_DATA_MAIN? {}\n", add_joins_for_meta_data);
+            fmt::print("requires metadata table joins for R_COLL_MAIN? {}\n", add_joins_for_meta_coll);
+            fmt::print("requires metadata table joins for R_RESC_MAIN? {}\n", add_joins_for_meta_resc);
+            fmt::print("requires metadata table joins for R_USER_MAIN? {}\n", add_joins_for_meta_user);
+            fmt::print("\n");
+
+            fmt::print("requires table joins for DATA_RESC_HIER? {}\n", add_sql_for_data_resc_hier);
             fmt::print("\n");
 
             //
@@ -557,6 +563,31 @@ namespace irods::experimental::api::genquery
                 graph[*iter] = table_joins[table_edges.size() - std::distance(iter, last)];
             }
 
+            constexpr const char* data_resc_hier_with_clause =
+                "with recursive T as ("
+                    "select "
+                        "resc_id, "
+                        "resc_name hier, "
+                        "case "
+                            "when resc_parent = '' then 0 "
+                            "else resc_parent::bigint "
+                        "end parent_id "
+                    "from "
+                        "r_resc_main "
+                    "where "
+                        "resc_id > 0 "
+                    "union all "
+                    "select "
+                        "T.resc_id, "
+                        "(U.resc_name || ';' || T.hier)::varchar(250), "
+                        "case "
+                            "when U.resc_parent = '' then 0 "
+                            "else U.resc_parent::bigint "
+                        "end parent_id "
+                    "from T "
+                    "inner join r_resc_main U on U.resc_id = T.parent_id "
+                ") ";
+
             // Generate the SELECT clause.
             //
             // TODO Use Boost.Graph to resolve table joins for the SELECT clause.
@@ -565,7 +596,8 @@ namespace irods::experimental::api::genquery
             //
             // The tables stored in sql_tables must be directly joinable to at least one other table in
             // the sql_tables list. This step is NOT allowed to introduce intermediate tables.
-            auto select_clause = fmt::format("select {distinct}{columns} from {table} {alias}",
+            auto select_clause = fmt::format("{with_clause}select {distinct}{columns} from {table} {alias}",
+                                             fmt::arg("with_clause", add_sql_for_data_resc_hier ? data_resc_hier_with_clause : ""),
                                              fmt::arg("distinct", select.distinct ? "distinct " : ""),
                                              fmt::arg("columns", fmt::join(columns_for_select_clause, ", ")),
                                              fmt::arg("table", sql_tables.front()),
@@ -680,6 +712,10 @@ namespace irods::experimental::api::genquery
                                    table_aliases.at("R_USER_MAIN"));
             }
 
+            if (add_sql_for_data_resc_hier) {
+                sql += fmt::format(" inner join T on T.resc_id = {}.resc_id", table_aliases.at("R_RESC_MAIN"));
+            }
+
             if (!conds.empty()) {
                 sql += fmt::format(" where {}", conds);
             }
@@ -777,4 +813,8 @@ namespace irods::experimental::api::genquery
         select resc_id, hier from T where parent_id = 0 and resc_id = <resc_id>;
 
     Q. Can this be used with other queries?
+    A. Yes! CTEs can be joined just like any other table.
+
+    Q. What tables need to be joined in order to support this?
+    A. R_RESC_MAIN is the only table that is needed.
  */

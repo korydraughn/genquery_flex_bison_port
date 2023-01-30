@@ -77,9 +77,13 @@ namespace irods::experimental::api::genquery
         {"DATA_MODIFY_TIME",    {"R_DATA_MAIN", "modify_ts"}},
         {"DATA_MODE",           {"R_DATA_MAIN", "data_mode"}},
         {"DATA_RESC_ID",        {"R_DATA_MAIN", "resc_id"}},
-        {"DATA_RESC_HIER",      {"", ""}}, // No direct mapping. Derived via SQL.
         {"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}}, // What is this when there's a DATA_OWNER_NAME?
         {"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}}, // What is this when there's a DATA_OWNER_ZONE?
+
+        // This is a special column that is derived via SQL.
+        // It has no direct mapping. It is generated using a recursive CTE.
+        // If the column, "hier", is ever changed, the WITH statement in the parser must be updated too.
+        {"DATA_RESC_HIER",      {"", "hier"}},
 
         {"COLL_ID",          {"R_COLL_MAIN", "coll_id"}},
         {"COLL_NAME",        {"R_COLL_MAIN", "coll_name"}},
