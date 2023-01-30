@@ -42,9 +42,9 @@ namespace
         "R_RESC_MAIN",                  // 5
         "R_RULE_EXEC",                  // 6
         "R_SPECIFIC_QUERY",             // 7
-        "R_TICKET_ALLOWED_GROUPS",      // 8
-        "R_TICKET_ALLOWED_HOSTS",       // 9
-        "R_TICKET_ALLOWED_USERS",       // 10
+        "R_TICKET_ALLOWED_HOSTS",       // 8
+        "R_TICKET_ALLOWED_USERS",       // 9
+        "R_TICKET_ALLOWED_GROUPS",      // 10
         "R_TICKET_MAIN",                // 11
         "R_TOKN_MAIN",                  // 12
         "R_USER_AUTH",                  // 13
@@ -53,6 +53,7 @@ namespace
         "R_USER_PASSWORD",              // 16
         "R_USER_SESSION_KEY",           // 17
         "R_ZONE_MAIN",                  // 18
+        "R_QUOTA_MAIN",                 // 19
     }); // table_names
 
     // TODO Consider using the lookup function to resolve table names to indices.
@@ -83,13 +84,13 @@ namespace
         {15, 16},  // R_USER_MAIN.user_id = R_USER_PASSWORD.user_id
         {15, 17},  // R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id
 
+        {11, 8},   // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_HOSTS.ticket_id
+        {11, 9},   // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_USERS.ticket_id
+        {11, 10},  // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_GROUPS.ticket_id
+
         // TODO Handle R_USER_GROUP?
         // TODO Handle R_QUOTA_MAIN
         // TODO Handle R_QUOTA_USAGE
-        // TODO Handle R_TICKET_MAIN
-        // TODO Handle R_TICKET_ALLOWED_HOSTS
-        // TODO Handle R_TICKET_ALLOWED_USERS
-        // TODO Handle R_TICKET_ALLOWED_GROUPS
     }); // table_edges
 
     constinit const auto table_joins = std::to_array<irods::experimental::genquery::edge_property>({
@@ -115,7 +116,11 @@ namespace
         {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_AUTH.user_id"},
         {"{}.user_id = {}.group_user_id",   "R_USER_MAIN.user_id = R_USER_GROUP.group_user_id"},
         {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_PASSWORD.user_id"},
-        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id"}
+        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id"},
+
+        {"{}.ticket_id = {}.ticket_id",     "R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_HOSTS.ticket_id"},
+        {"{}.ticket_id = {}.ticket_id",     "R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_USERS.ticket_id"},
+        {"{}.ticket_id = {}.ticket_id",     "R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_GROUPS.ticket_id"},
     }); // table_joins
 
     constexpr auto table_name_index(const std::string_view _table_name) -> std::size_t

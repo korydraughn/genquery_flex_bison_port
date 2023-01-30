@@ -191,15 +191,19 @@ namespace irods::experimental::api::genquery
         {"TICKET_WRITE_FILE_COUNT",        {"R_TICKET_MAIN", "write_file_count"}},
         {"TICKET_WRITE_BYTE_LIMIT",        {"R_TICKET_MAIN", "write_byte_limit"}},
         {"TICKET_WRITE_BYTE_COUNT",        {"R_TICKET_MAIN", "write_byte_count"}},
-        {"TICKET_EXPIRY_TS",               {"R_TICKET_MAIN", "ticket_expiry_ts"}},
+        {"TICKET_EXPIRY_TIME",             {"R_TICKET_MAIN", "ticket_expiry_ts"}},
         {"TICKET_CREATE_TIME",             {"R_TICKET_MAIN", "create_time"}},
         {"TICKET_MODIFY_TIME",             {"R_TICKET_MAIN", "modify_time"}},
+
         {"TICKET_ALLOWED_HOST",            {"R_TICKET_ALLOWED_HOSTS", "host"}},
         {"TICKET_ALLOWED_HOST_TICKET_ID",  {"R_TICKET_ALLOWED_HOSTS", "ticket_id"}},
+
         {"TICKET_ALLOWED_USER_NAME",       {"R_TICKET_ALLOWED_USERS", "user_name"}},
         {"TICKET_ALLOWED_USER_TICKET_ID",  {"R_TICKET_ALLOWED_USERS", "ticket_id"}},
+
         {"TICKET_ALLOWED_GROUP_NAME",      {"R_TICKET_ALLOWED_GROUPS", "group_name"}},
         {"TICKET_ALLOWED_GROUP_TICKET_ID", {"R_TICKET_ALLOWED_GROUPS", "ticket_id"}},
+
         {"TICKET_DATA_NAME",               {"R_DATA_MAIN", "data_name"}}, // TODO special?
         {"TICKET_COLL_NAME",               {"R_COLL_MAIN", "coll_name"}}, // TODO special?
         {"TICKET_OWNER_NAME",              {"R_USER_MAIN", "user_name"}}, // TODO special?
