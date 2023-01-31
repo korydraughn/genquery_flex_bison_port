@@ -65,8 +65,8 @@ namespace irods::experimental::api::genquery
         {"DATA_TYPE_NAME",      {"R_DATA_MAIN", "data_type_name"}},
         {"DATA_SIZE",           {"R_DATA_MAIN", "data_size"}},
         {"DATA_PATH",           {"R_DATA_MAIN", "data_path"}},
-        {"DATA_OWNER_NAME",     {"R_DATA_MAIN", "data_owner_name"}},
-        {"DATA_OWNER_ZONE",     {"R_DATA_MAIN", "data_owner_zone"}},
+        //{"DATA_OWNER_NAME",     {"R_DATA_MAIN", "data_owner_name"}}, // Misleading. Prefer DATA_USER_NAME.
+        //{"DATA_OWNER_ZONE",     {"R_DATA_MAIN", "data_owner_zone"}}, // Misleading. Prefer DATA_USER_ZONE.
         {"DATA_REPL_STATUS",    {"R_DATA_MAIN", "data_is_dirty"}},
         {"DATA_STATUS",         {"R_DATA_MAIN", "data_status"}},
         {"DATA_CHECKSUM",       {"R_DATA_MAIN", "data_checksum"}},
@@ -77,8 +77,8 @@ namespace irods::experimental::api::genquery
         {"DATA_MODIFY_TIME",    {"R_DATA_MAIN", "modify_ts"}},
         {"DATA_MODE",           {"R_DATA_MAIN", "data_mode"}},
         {"DATA_RESC_ID",        {"R_DATA_MAIN", "resc_id"}},
-        {"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}}, // What is this when there's a DATA_OWNER_NAME?
-        {"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}}, // What is this when there's a DATA_OWNER_ZONE?
+        {"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}},
+        {"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}},
 
         // This is a special column that is derived via SQL.
         // It has no direct mapping. It is generated using a recursive CTE.
@@ -88,8 +88,8 @@ namespace irods::experimental::api::genquery
         {"COLL_ID",          {"R_COLL_MAIN", "coll_id"}},
         {"COLL_NAME",        {"R_COLL_MAIN", "coll_name"}},
         {"COLL_PARENT_NAME", {"R_COLL_MAIN", "parent_coll_name"}},
-        {"COLL_OWNER_NAME",  {"R_COLL_MAIN", "coll_owner_name"}},
-        {"COLL_OWNER_ZONE",  {"R_COLL_MAIN", "coll_owner_zone"}},
+        //{"COLL_OWNER_NAME",  {"R_COLL_MAIN", "coll_owner_name"}}, // Misleading. Prefer COLL_USER_NAME.
+        //{"COLL_OWNER_ZONE",  {"R_COLL_MAIN", "coll_owner_zone"}}, // Misleading. Prefer COLL_USER_ZONE.
         {"COLL_MAP_ID",      {"R_COLL_MAIN", "coll_map_id"}},
         {"COLL_INHERITANCE", {"R_COLL_MAIN", "coll_inheritance"}},
         {"COLL_COMMENTS",    {"R_COLL_MAIN", "r_comment"}},
@@ -98,8 +98,8 @@ namespace irods::experimental::api::genquery
         {"COLL_TYPE",        {"R_COLL_MAIN", "coll_type"}},
         {"COLL_INFO1",       {"R_COLL_MAIN", "coll_info1"}},
         {"COLL_INFO2",       {"R_COLL_MAIN", "coll_info2"}},
-        {"COLL_USER_NAME",   {"R_USER_MAIN", "user_name"}}, // What is this when there's a COLL_OWNER_NAME?
-        {"COLL_USER_ZONE",   {"R_USER_MAIN", "zone_name"}}, // What is this when there's a COLL_OWNER_ZONE?
+        {"COLL_USER_NAME",   {"R_USER_MAIN", "user_name"}},
+        {"COLL_USER_ZONE",   {"R_USER_MAIN", "zone_name"}},
 
         {"META_DATA_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_DATA_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
@@ -153,6 +153,10 @@ namespace irods::experimental::api::genquery
         {"TOKEN_VALUE3",    {"R_TOKN_MAIN", "token_value3"}},
         {"TOKEN_COMMENT",   {"R_TOKN_MAIN", "r_comment"}},
 
+        // TODO Should quota information be handled by a set of specific queries?
+        // Why should GenQuery handle these?
+        // Perhaps we should offload special columns to specific queries? This keeps the
+        // parser's implementation simpler.
         {"QUOTA_USER_ID",           {"R_QUOTA_MAIN", "user_id"}},
         {"QUOTA_RESC_ID",           {"R_QUOTA_MAIN", "resc_id"}},
         {"QUOTA_LIMIT",             {"R_QUOTA_MAIN", "quota_limit"}},
