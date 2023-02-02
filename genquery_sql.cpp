@@ -766,10 +766,27 @@ namespace irods::experimental::api::genquery
                         alias = table_aliases.at(std::string{iter->second.table});
                     }
 
+#if 1
                     sort_expr.push_back(fmt::format("{}.{} {}",
                                                     alias,
                                                     iter->second.name,
                                                     se.ascending_order ? "asc" : "desc"));
+#else
+                    if (se.column.type_name.empty()) {
+                        sort_expr.push_back(fmt::format("{}.{} {}",
+                                                        alias,
+                                                        iter->second.name,
+                                                        se.ascending_order ? "asc" : "desc"));
+                    }
+                    else {
+                        // FIXME We need access to the cast information to support this.
+                        sort_expr.push_back(fmt::format("cast({}.{} as {}) {}",
+                                                        alias,
+                                                        iter->second.name,
+                                                        se.column.type_name,
+                                                        se.ascending_order ? "asc" : "desc"));
+                    }
+#endif
                 }
 
                 // All columns in the order by clause must exist in the list of columns to project.
