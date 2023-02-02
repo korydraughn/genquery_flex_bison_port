@@ -725,39 +725,44 @@ namespace irods::experimental::api::genquery
                 sql += fmt::format(" where {}", conds);
             }
 
-            if (!select.order_by.columns.empty()) {
-                auto columns = select.order_by.columns;
+            if (!select.order_by.sort_expressions.empty()) {
+                const auto& sort_expressions = select.order_by.sort_expressions;
 
-                std::transform(std::begin(columns), std::end(columns), std::begin(columns), [](auto&& _c) {
-                    const auto iter = column_name_mappings.find(_c);
+                std::vector<std::string> sort_expr;
+                sort_expr.reserve(sort_expressions.size());
+
+                for (const auto& se : sort_expressions) {
+                    const auto iter = column_name_mappings.find(se.column);
 
                     if (iter == std::end(column_name_mappings)) {
-                        throw std::invalid_argument{fmt::format("unknown column in order-by clause: {}", _c)};
+                        throw std::invalid_argument{fmt::format("unknown column in order-by clause: {}", se.column)};
                     }
 
                     auto is_special_column = true;
                     std::string_view alias;
 
                     // clang-format off
-                    if      (_c.starts_with("META_D")) { alias = "mmd"; }
-                    else if (_c.starts_with("META_C")) { alias = "mmc"; }
-                    else if (_c.starts_with("META_R")) { alias = "mmr"; }
-                    else if (_c.starts_with("META_U")) { alias = "mmu"; }
-                    else                               { is_special_column = false; }
+                    if      (se.column.starts_with("META_D")) { alias = "mmd"; }
+                    else if (se.column.starts_with("META_C")) { alias = "mmc"; }
+                    else if (se.column.starts_with("META_R")) { alias = "mmr"; }
+                    else if (se.column.starts_with("META_U")) { alias = "mmu"; }
+                    else if (se.column == "DATA_RESC_HIER")   { alias = "T"; }
+                    else                                      { is_special_column = false; }
                     // clang-format on
 
                     if (!is_special_column) {
                         alias = table_aliases.at(std::string{iter->second.table});
                     }
 
-                    return fmt::format("{}.{}", alias, iter->second.name);
-                });
+                    sort_expr.push_back(fmt::format("{}.{} {}",
+                                                    alias,
+                                                    iter->second.name,
+                                                    se.ascending_order ? "asc" : "desc"));
+                }
 
                 // All columns in the order by clause must exist in the list of columns to project.
                 // TODO Replace all columns with real table names.
-                sql += fmt::format(" order by {} {}",
-                                   fmt::join(columns, ", "),
-                                   select.order_by.ascending_order ? "asc" : "desc");
+                sql += fmt::format(" order by {}", fmt::join(sort_expr, ", "));
             }
 
             if (!select.range.offset.empty()) {

@@ -52,8 +52,12 @@ This option causes make_* functions to be generated for each token kind.
     }
 }
 
+/*
+The following can be replaced by %param.
 %lex-param { gq::scanner& scanner } { gq::wrapper& wrapper }
 %parse-param { gq::scanner& scanner } { gq::wrapper& wrapper }
+*/
+%param { gq::scanner& scanner } { gq::wrapper& wrapper }
 %locations
 %define parse.trace
 %define parse.error verbose /* Can produce incorrect info if LAC is not enabled. */
@@ -90,6 +94,7 @@ rules only.
 %type<gq::Selections> selections;
 %type<gq::Conditions> conditions;
 %type<gq::order_by> order_by;
+%type<std::vector<gq::sort_expression>> sort_expr;
 %type<gq::range> range;
 %type<gq::Selection> selection;
 %type<gq::Column> column;
@@ -117,9 +122,15 @@ select:
   | SELECT NO DISTINCT selections WHERE conditions  { wrapper._select.distinct = false; std::swap(wrapper._select.selections, $4); std::swap(wrapper._select.conditions, $6); }
 
 order_by:
-    ORDER BY list_of_identifiers  { std::swap($$.columns, $3); }
-  | ORDER BY list_of_identifiers ASC  { std::swap($$.columns, $3); }
-  | ORDER BY list_of_identifiers DESC  { std::swap($$.columns, $3); $$.ascending_order = false; }
+    ORDER BY sort_expr  { std::swap($$.sort_expressions, $3); }
+
+sort_expr:
+    IDENTIFIER  { $$.push_back(gq::sort_expression{$1, true}); }
+  | IDENTIFIER ASC  { $$.push_back(gq::sort_expression{$1, true}); }
+  | IDENTIFIER DESC  { $$.push_back(gq::sort_expression{$1, false}); }
+  | sort_expr COMMA IDENTIFIER  { $1.push_back(gq::sort_expression{$3, true}); std::swap($$, $1); }
+  | sort_expr COMMA IDENTIFIER ASC  { $1.push_back(gq::sort_expression{$3, true}); std::swap($$, $1); }
+  | sort_expr COMMA IDENTIFIER DESC  { $1.push_back(gq::sort_expression{$3, false}); std::swap($$, $1); }
 
 range:
     OFFSET POSITIVE_INTEGER  { std::swap($$.offset, $2); }

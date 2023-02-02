@@ -3,7 +3,7 @@
 
 #include "genquery_sql.hpp"
 #include "genquery_wrapper.hpp"
-#include "genquery_stream_insertion.hpp"
+//#include "genquery_stream_insertion.hpp"
 
 int main(int _argc, char* _argv[])
 {

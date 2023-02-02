@@ -139,7 +139,7 @@ namespace irods::experimental::api::genquery
     using Selection     = boost::variant<SelectFunction, Column>;
     using Selections    = std::vector<Selection>;
     using Conditions    = std::vector<condition_type>;
-    using order_by_type = std::vector<std::string>;
+    //using order_by_type = std::vector<std::string>;
     // clang-format on
 
     struct logical_and
@@ -157,10 +157,15 @@ namespace irods::experimental::api::genquery
         Conditions conditions;
     };
 
+    struct sort_expression
+    {
+        std::string column;
+        bool ascending_order = true;
+    };
+
     struct order_by
     {
-        std::vector<std::string> columns;
-        bool ascending_order = true;
+        std::vector<sort_expression> sort_expressions;
     }; // struct order_by
 
     struct range
