@@ -30,6 +30,8 @@ This option causes make_* functions to be generated for each token kind.
     #include <string>
     #include <vector>
 
+    #include <fmt/format.h>
+
     namespace irods::experimental::api::genquery
     {
         class scanner;
@@ -72,6 +74,7 @@ The following can be replaced by %param.
 %token OFFSET FETCH FIRST ROWS ONLY
 %token CASE WHEN ELSE END
 %token GROUP HAVING EXISTS IS NULL
+%token CAST AS
 %token END_OF_INPUT 0
 
 /*
@@ -148,9 +151,12 @@ selection:
 
 column:
     IDENTIFIER  { $$ = gq::Column{std::move($1)}; }
+  | CAST PAREN_OPEN IDENTIFIER AS IDENTIFIER PAREN_CLOSE  { $$ = gq::Column{$3, $5}; }
+  | CAST PAREN_OPEN IDENTIFIER AS IDENTIFIER PAREN_OPEN POSITIVE_INTEGER PAREN_CLOSE PAREN_CLOSE  { $$ = gq::Column{$3, fmt::format("{}({})", $5, $7)}; }
 
 select_function:
-    IDENTIFIER PAREN_OPEN IDENTIFIER PAREN_CLOSE  { $$ = gq::SelectFunction{std::move($1), gq::Column{std::move($3)}}; }
+    IDENTIFIER PAREN_OPEN column PAREN_CLOSE  { $$ = gq::SelectFunction{std::move($1), gq::Column{std::move($3)}}; }
+    /*IDENTIFIER PAREN_OPEN IDENTIFIER PAREN_CLOSE  { $$ = gq::SelectFunction{std::move($1), gq::Column{std::move($3)}}; }*/
 
 conditions:
     condition  { $$ = gq::Conditions{std::move($1)}; }

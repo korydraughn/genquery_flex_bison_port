@@ -49,6 +49,8 @@
 (?i:not)               return gq::Parser::make_NOT(gq::location());
 (?i:and)               return gq::Parser::make_AND(gq::location());
 (?i:or)                return gq::Parser::make_OR(gq::location());
+(?i:cast)              return gq::Parser::make_CAST(gq::location());
+(?i:as)                return gq::Parser::make_AS(gq::location());
 "="                    return gq::Parser::make_EQUAL(gq::location());
 "!="                   return gq::Parser::make_NOT_EQUAL(gq::location());
 "<>"                   return gq::Parser::make_NOT_EQUAL(gq::location());

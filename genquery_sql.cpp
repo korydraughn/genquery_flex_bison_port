@@ -256,7 +256,13 @@ namespace irods::experimental::api::genquery
 
         auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
         const std::string_view alias = is_special_column ? sp_fmt_arg : table_aliases.at(std::string{iter->second.table});
-        columns_ptr->push_back(fmt::format("{}.{}", alias, iter->second.name));
+
+        if (column.type_name.empty()) {
+            columns_ptr->push_back(fmt::format("{}.{}", alias, iter->second.name));
+        }
+        else {
+            columns_ptr->push_back(fmt::format("cast({}.{} as {})", alias, iter->second.name, column.type_name));
+        }
 
         return columns_ptr->back();
     }
@@ -339,7 +345,13 @@ namespace irods::experimental::api::genquery
         //auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
         auto* columns_ptr = &columns_for_select_clause;
         const std::string_view alias = is_special_column ? sp_fmt_arg : table_aliases.at(std::string{iter->second.table});
-        columns_ptr->push_back(fmt::format("{}({}.{})", select_function.name, alias, iter->second.name));
+
+        if (select_function.column.type_name.empty()) {
+            columns_ptr->push_back(fmt::format("{}({}.{})", select_function.name, alias, iter->second.name));
+        }
+        else {
+            columns_ptr->push_back(fmt::format("{}(cast({}.{} as {}))", select_function.name, alias, iter->second.name, select_function.column.type_name));
+        }
 
         return columns_ptr->back();
 #endif

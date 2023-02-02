@@ -11,9 +11,20 @@ namespace irods::experimental::api::genquery
 {
     struct Column {
         Column() = default;
+
         explicit Column(std::string name)
-            : name{std::move(name)} {}
+            : name{std::move(name)}
+        {
+        }
+
+        Column(std::string name, std::string type_name)
+            : name{std::move(name)}
+            , type_name{std::move(type_name)}
+        {
+        }
+
         std::string name;
+        std::string type_name;
     };
 
     struct SelectFunction {
