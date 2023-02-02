@@ -587,7 +587,7 @@ namespace irods::experimental::api::genquery
                         "resc_name hier, "
                         "case "
                             "when resc_parent = '' then 0 "
-                            "else resc_parent::bigint "
+                            "else cast(resc_parent as bigint) "
                         "end parent_id "
                     "from "
                         "r_resc_main "
@@ -596,13 +596,13 @@ namespace irods::experimental::api::genquery
                     "union all "
                     "select "
                         "T.resc_id, "
-                        "(U.resc_name || ';' || T.hier)::varchar(250), "
+                        "cast((U.resc_name || ';' || T.hier) as varchar(250)), "
                         "case "
                             "when U.resc_parent = '' then 0 "
-                            "else U.resc_parent::bigint "
+                            "else cast(U.resc_parent as bigint) "
                         "end parent_id "
                     "from T "
-                    "inner join r_resc_main U on U.resc_id = T.parent_id "
+                    "inner join r_resc_main U on U.resc_id = T.parent_id"
                 ") ";
 
             // Generate the SELECT clause.
