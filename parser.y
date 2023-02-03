@@ -163,6 +163,7 @@ conditions:
   | conditions AND conditions  { $1.push_back(gq::logical_and{std::move($3)}); std::swap($$, $1); }
   | conditions OR conditions  { $1.push_back(gq::logical_or{std::move($3)}); std::swap($$, $1); }
   | PAREN_OPEN conditions PAREN_CLOSE  { $$ = gq::Conditions{gq::logical_grouping{std::move($2)}}; }
+  | NOT conditions  { $$ = gq::Conditions{gq::logical_not{std::move($2)}}; }
 
 condition:
     column condition_expression  { $$ = gq::Condition(std::move($1), std::move($2)); }

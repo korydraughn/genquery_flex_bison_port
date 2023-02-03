@@ -501,6 +501,11 @@ namespace irods::experimental::api::genquery
         return fmt::format(" or {}", sql(condition.condition));
     }
 
+    std::string sql(const logical_not& condition)
+    {
+        return fmt::format("not {}", sql(condition.condition));
+    }
+
     std::string sql(const logical_grouping& condition)
     {
         return fmt::format("({})", sql(condition.conditions));

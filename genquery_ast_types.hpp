@@ -139,10 +139,12 @@ namespace irods::experimental::api::genquery
 
     struct logical_and;
     struct logical_or;
+    struct logical_not;
     struct logical_grouping;
 
     using condition_type = boost::variant<logical_and,
                                           logical_or,
+                                          logical_not,
                                           logical_grouping,
                                           Condition>;
 
@@ -159,6 +161,11 @@ namespace irods::experimental::api::genquery
     };
 
     struct logical_or
+    {
+        Conditions condition;
+    };
+
+    struct logical_not
     {
         Conditions condition;
     };
