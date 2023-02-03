@@ -163,6 +163,8 @@ namespace irods::experimental::api::genquery
 
     bool requested_resc_hier = false;
 
+    std::vector<const Column*> ast_column_ptrs;
+
     std::vector<std::string> columns_for_select_clause;
     std::vector<std::string> columns_for_where_clause;
     std::vector<std::string_view> sql_tables;
@@ -202,6 +204,8 @@ namespace irods::experimental::api::genquery
         if (iter == std::end(column_name_mappings)) {
             throw std::invalid_argument{fmt::format("unknown column: {}", column.name)};
         }
+
+        ast_column_ptrs.push_back(&column);
 
         // TODO Handle DATA_RESC_HIER. It is a column that is derived from the relation
         // between individual rows in R_RESC_MAIN.
@@ -274,6 +278,8 @@ namespace irods::experimental::api::genquery
         if (iter == std::end(column_name_mappings)) {
             throw std::invalid_argument{fmt::format("unknown column: {}", select_function.column.name)};
         }
+
+        ast_column_ptrs.push_back(&select_function.column);
 
         // TODO Allow aggregate functions in where clause.
         // For now, let's ignore that case until we have something more functional.
@@ -515,6 +521,12 @@ namespace irods::experimental::api::genquery
 
             if (sql_tables.empty()) {
                 return "EMPTY RESULTSET";
+            }
+
+            {
+                std::sort(std::begin(ast_column_ptrs), std::end(ast_column_ptrs));
+                auto end = std::end(ast_column_ptrs);
+                ast_column_ptrs.erase(std::unique(std::begin(ast_column_ptrs), end), end);
             }
 
             // TODO Algorithm
@@ -766,27 +778,27 @@ namespace irods::experimental::api::genquery
                         alias = table_aliases.at(std::string{iter->second.table});
                     }
 
-#if 1
-                    sort_expr.push_back(fmt::format("{}.{} {}",
-                                                    alias,
-                                                    iter->second.name,
-                                                    se.ascending_order ? "asc" : "desc"));
-#else
-                    if (se.column.type_name.empty()) {
+                    const auto ast_iter = std::find_if(std::begin(ast_column_ptrs), std::end(ast_column_ptrs), [&se](const Column* _p) {
+                        return _p->name == se.column;
+                    });
+
+                    if (std::end(ast_column_ptrs) == ast_iter) {
+                        throw std::invalid_argument{"cannot generate SQL from General Query."};
+                    }
+
+                    if ((*ast_iter)->type_name.empty()) {
                         sort_expr.push_back(fmt::format("{}.{} {}",
                                                         alias,
                                                         iter->second.name,
                                                         se.ascending_order ? "asc" : "desc"));
                     }
                     else {
-                        // FIXME We need access to the cast information to support this.
                         sort_expr.push_back(fmt::format("cast({}.{} as {}) {}",
                                                         alias,
                                                         iter->second.name,
-                                                        se.column.type_name,
+                                                        (*ast_iter)->type_name,
                                                         se.ascending_order ? "asc" : "desc"));
                     }
-#endif
                 }
 
                 // All columns in the order by clause must exist in the list of columns to project.
