@@ -2,11 +2,10 @@
 #define IRODS_GENQUERY_WRAPPER_HPP
 
 #include "genquery_ast_types.hpp"
-#include "parser.hpp" //"genquery_parser_bison_generated.hpp"
+#include "parser.hpp"
 #include "genquery_scanner.hpp"
 
 #include <cstdint>
-#include <memory>
 #include <string>
 
 namespace irods::experimental::api::genquery
@@ -14,23 +13,23 @@ namespace irods::experimental::api::genquery
     class wrapper
     {
     public:
-        explicit wrapper(std::istream*);
+        explicit wrapper(std::istream* _is_ptr);
 
-        static Select parse(std::istream&);
-        static Select parse(const char*);
-        static Select parse(const std::string&);
+        static auto parse(std::istream& _is) -> Select;
+        static auto parse(const char* _s) -> Select;
+        static auto parse(const std::string& _s) -> Select;
 
-        friend class Parser;
+        friend class parser;
         friend class scanner;
 
     private:
-        void increaseLocation(std::uint64_t);
-        std::uint64_t location() const;
+        auto increment_location(std::uint64_t _count) -> void;
+        auto location() const -> std::uint64_t;
 
-        scanner _scanner;
-        Parser _parser;
-        Select _select;
-        std::uint64_t _location;
+        scanner scanner_;
+        parser parser_;
+        Select select_;
+        std::uint64_t location_;
     };
 } // namespace irods::experimental::api::genquery
 

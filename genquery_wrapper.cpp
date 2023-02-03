@@ -1,46 +1,44 @@
-#include "genquery_ast_types.hpp"
 #include "genquery_wrapper.hpp"
 
 #include <sstream>
-#include <utility>
 
 namespace irods::experimental::api::genquery
 {
-    wrapper::wrapper(std::istream* istream)
-        : _scanner(*this)
-        , _parser(_scanner, *this)
-        , _select{}
-        , _location(0)
+    wrapper::wrapper(std::istream* _is_ptr)
+        : scanner_{*this}
+        , parser_{scanner_, *this}
+        , select_{}
+        , location_{}
     {
-        _scanner.switch_streams(istream, nullptr);
-        _parser.parse(); // TODO: handle error here
-    }
+        scanner_.switch_streams(_is_ptr, nullptr);
+        parser_.parse(); // TODO: handle error here
+    } // wrapper
 
-    Select
-    wrapper::parse(std::istream& istream) {
-        wrapper wrapper(&istream);
-        return std::move(wrapper._select);
-    }
+    auto wrapper::parse(std::istream& _is) -> Select
+    {
+        wrapper wrapper(&_is);
+        return wrapper.select_;
+    } // parse
 
-    Select
-    wrapper::parse(const char* s) {
-        std::istringstream iss(s);
+    auto wrapper::parse(const char* _s) -> Select
+    {
+        std::istringstream iss(_s);
         return parse(iss);
-    }
+    } // parse
 
-    Select
-    wrapper::parse(const std::string& s) {
-        std::istringstream iss(s);
+    auto wrapper::parse(const std::string& _s) -> Select
+    {
+        std::istringstream iss(_s);
         return parse(iss);
-    }
+    } // parse
 
-    void
-    wrapper::increaseLocation(uint64_t location) {
-        _location += location;
-    }
+    auto wrapper::increment_location(std::uint64_t _location) -> void
+    {
+        location_ += _location;
+    } // increment_location
 
-    uint64_t
-    wrapper::location() const {
-        return _location;
-    }
+    auto wrapper::location() const -> std::uint64_t
+    {
+        return location_;
+    } // location
 } // namespace irods::experimental::api::genquery

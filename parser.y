@@ -4,7 +4,7 @@
 %defines /* Doesn't work in version 3.0 - %header */
 
 /* The name of the parser class. Defaults to "parser" in C++. */
-%define api.parser.class { Parser }
+%define api.parser.class { parser }
 
 /*
 Request that symbols be handled as a whole (type, value, and possibly location)
@@ -22,11 +22,23 @@ This option causes make_* functions to be generated for each token kind.
 /* Defines the namespace for the parser class. */
 %define api.namespace { irods::experimental::api::genquery }
 
+%code top
+{
+    #include "genquery_scanner.hpp"
+    #include "parser.hpp"
+    #include "genquery_wrapper.hpp"
+    #include "location.hh"
+
+    static gq::parser::symbol_type yylex(gq::scanner& _scanner, gq::wrapper& _wrapper)
+    {
+        return _scanner.get_next_token();
+    }
+}
+
 %code requires
 {
     #include "genquery_ast_types.hpp"
 
-    #include <iostream> // TODO Is this needed?
     #include <string>
     #include <vector>
 
@@ -41,19 +53,6 @@ This option causes make_* functions to be generated for each token kind.
     namespace gq = irods::experimental::api::genquery;
 }
 
-%code top
-{
-    #include "genquery_scanner.hpp"
-    #include "parser.hpp" //"genquery_parser_bison_generated.hpp"
-    #include "genquery_wrapper.hpp"
-    #include "location.hh"
-
-    static gq::Parser::symbol_type yylex(gq::scanner& scanner, gq::wrapper& wrapper)
-    {
-        return scanner.get_next_token();
-    }
-}
-
 /*
 The following can be replaced by %param.
 %lex-param { gq::scanner& scanner } { gq::wrapper& wrapper }
@@ -64,7 +63,7 @@ The following can be replaced by %param.
 %define parse.trace
 %define parse.error verbose /* Can produce incorrect info if LAC is not enabled. */
 
-%define api.token.prefix {GENQUERY_TOKEN_}
+%define api.token.prefix {IRODS_GENQUERY_TOKEN_}
 
 %token <std::string> IDENTIFIER STRING_LITERAL POSITIVE_INTEGER INTEGER
 %token SELECT NO DISTINCT WHERE NOT AND OR COMMA PAREN_OPEN PAREN_CLOSE
@@ -113,16 +112,16 @@ rules only.
 
 genquery:
     select
-  | select order_by  { std::swap(wrapper._select.order_by, $2); }
-  | select range  { std::swap(wrapper._select.range, $2); }
-  | select order_by range  { std::swap(wrapper._select.order_by, $2); std::swap(wrapper._select.range, $3); }
-  | select range order_by  { std::swap(wrapper._select.order_by, $3); std::swap(wrapper._select.range, $2); }
+  | select order_by  { std::swap(wrapper.select_.order_by, $2); }
+  | select range  { std::swap(wrapper.select_.range, $2); }
+  | select order_by range  { std::swap(wrapper.select_.order_by, $2); std::swap(wrapper.select_.range, $3); }
+  | select range order_by  { std::swap(wrapper.select_.order_by, $3); std::swap(wrapper.select_.range, $2); }
 
 select:
-    SELECT selections  { std::swap(wrapper._select.selections, $2); }
-  | SELECT selections WHERE conditions  { std::swap(wrapper._select.selections, $2); std::swap(wrapper._select.conditions, $4); }
-  | SELECT NO DISTINCT selections  { wrapper._select.distinct = false; std::swap(wrapper._select.selections, $4); }
-  | SELECT NO DISTINCT selections WHERE conditions  { wrapper._select.distinct = false; std::swap(wrapper._select.selections, $4); std::swap(wrapper._select.conditions, $6); }
+    SELECT selections  { std::swap(wrapper.select_.selections, $2); }
+  | SELECT selections WHERE conditions  { std::swap(wrapper.select_.selections, $2); std::swap(wrapper.select_.conditions, $4); }
+  | SELECT NO DISTINCT selections  { wrapper.select_.distinct = false; std::swap(wrapper.select_.selections, $4); }
+  | SELECT NO DISTINCT selections WHERE conditions  { wrapper.select_.distinct = false; std::swap(wrapper.select_.selections, $4); std::swap(wrapper.select_.conditions, $6); }
 
 order_by:
     ORDER BY sort_expr  { std::swap($$.sort_expressions, $3); }
@@ -194,8 +193,7 @@ list_of_identifiers:
 
 %%
 
-void gq::Parser::error(const location& location, const std::string& message)
+void gq::parser::error(const location& _location, const std::string& _message)
 {
-    // TODO: improve error handling
-    std::cerr << "Error: " << message << "\nError location: " << wrapper.location() << '\n';
-}
+    throw std::invalid_argument{fmt::format("{} @ {}", _message, wrapper.location())};
+} // gq::parser::error

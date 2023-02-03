@@ -1,9 +1,9 @@
-#include "genquery_ast_types.hpp"
+#include "genquery_sql.hpp"
 
+#include "genquery_ast_types.hpp"
 #include "vertex_property.hpp"
 #include "edge_property.hpp"
 #include "table_column_key_maps.hpp"
-#include "genquery_utilities.hpp"
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -79,14 +79,14 @@ namespace
 
         {11, 15},  // R_TICKET_MAIN.user_id = R_USER_MAIN.user_id
 
+        {11, 8},   // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_HOSTS.ticket_id
+        {11, 9},   // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_USERS.ticket_id
+        {11, 10},  // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_GROUPS.ticket_id
+
         {15, 13},  // R_USER_MAIN.user_id = R_USER_AUTH.user_id
         {15, 14},  // R_USER_MAIN.user_id = R_USER_GROUP.group_user_id
         {15, 16},  // R_USER_MAIN.user_id = R_USER_PASSWORD.user_id
         {15, 17},  // R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id
-
-        {11, 8},   // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_HOSTS.ticket_id
-        {11, 9},   // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_USERS.ticket_id
-        {11, 10},  // R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_GROUPS.ticket_id
 
         // TODO Handle R_USER_GROUP?
         // TODO Handle R_QUOTA_MAIN
@@ -94,33 +94,33 @@ namespace
     }); // table_edges
 
     constinit const auto table_joins = std::to_array<irods::experimental::genquery::edge_property>({
-        {"{}.coll_id = {}.coll_id",         "R_COLL_MAIN.coll_id = R_DATA_MAIN.coll_id"},
-        {"{}.coll_id = {}.object_id",       "R_COLL_MAIN.coll_id = R_OBJT_ACCESS.object_id"},
-        {"{}.coll_id = {}.object_id",       "R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id"},
-        {"{}.coll_id = {}.object_id",       "R_COLL_MAIN.coll_id = R_TICKET_MAIN.object_id"},
+        {"{}.coll_id = {}.coll_id"},
+        {"{}.coll_id = {}.object_id"},
+        {"{}.coll_id = {}.object_id"},
+        {"{}.coll_id = {}.object_id"},
 
-        {"{}.data_id = {}.object_id",       "R_DATA_MAIN.data_id = R_OBJT_ACCESS.object_id"},
-        {"{}.data_id = {}.object_id",       "R_DATA_MAIN.data_id = R_OBJT_METAMAP.object_id"},
-        {"{}.resc_id = {}.resc_id",         "R_DATA_MAIN.resc_id = R_RESC_MAIN.resc_id"},
-        {"{}.data_id = {}.object_id",       "R_DATA_MAIN.data_id = R_TICKET_MAIN.object_id"},
+        {"{}.data_id = {}.object_id"},
+        {"{}.data_id = {}.object_id"},
+        {"{}.resc_id = {}.resc_id"},
+        {"{}.data_id = {}.object_id"},
 
-        {"{}.meta_id = {}.meta_id",         "R_META_MAIN.meta_id = R_OBJT_METAMAP.meta_id"},
+        {"{}.meta_id = {}.meta_id"},
 
-        {"{}.access_type_id = {}.token_id", "R_OBJT_ACCESS.access_type_id = R_TOKN_MAIN.token_id"},
+        {"{}.access_type_id = {}.token_id"},
 
-        {"{}.object_id = {}.resc_id",       "R_OBJT_METAMAP.object_id = R_RESC_MAIN.resc_id"},
-        {"{}.object_id = {}.user_id",       "R_OBJT_METAMAP.object_id = R_USER_MAIN.user_id"},
+        {"{}.object_id = {}.resc_id"},
+        {"{}.object_id = {}.user_id"},
 
-        {"{}.user_id = {}.user_id",         "R_TICKET_MAIN.user_id = R_USER_MAIN.user_id"},
+        {"{}.user_id = {}.user_id"},
 
-        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_AUTH.user_id"},
-        {"{}.user_id = {}.group_user_id",   "R_USER_MAIN.user_id = R_USER_GROUP.group_user_id"},
-        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_PASSWORD.user_id"},
-        {"{}.user_id = {}.user_id",         "R_USER_MAIN.user_id = R_USER_SESSION_KEY.user_id"},
+        {"{}.ticket_id = {}.ticket_id"},
+        {"{}.ticket_id = {}.ticket_id"},
+        {"{}.ticket_id = {}.ticket_id"},
 
-        {"{}.ticket_id = {}.ticket_id",     "R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_HOSTS.ticket_id"},
-        {"{}.ticket_id = {}.ticket_id",     "R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_USERS.ticket_id"},
-        {"{}.ticket_id = {}.ticket_id",     "R_TICKET_MAIN.ticket_id = R_TICKET_ALLOWED_GROUPS.ticket_id"},
+        {"{}.user_id = {}.user_id"},
+        {"{}.user_id = {}.group_user_id"},
+        {"{}.user_id = {}.user_id"},
+        {"{}.user_id = {}.user_id"},
     }); // table_joins
 
     constexpr auto table_name_index(const std::string_view _table_name) -> std::size_t
