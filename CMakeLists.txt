@@ -57,6 +57,13 @@ add_subdirectory(parser)
 add_subdirectory(api_plugin)
 add_subdirectory(microservice)
 
+# TODO This is for testing. Remove once everything works.
+set(CPACK_PACKAGE_NAME irods-genquery2)
+set(CPACK_PACKAGE_CONTACT "Kory Draughn <korydraughn@renci.org>")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "irods-dev, libc6")
+set(CPACK_GENERATOR DEB)
+include(CPack)
+
 #set(IRODS_MODULE_NAME_PREFIX "irods_api_plugin-genquery2")
 #
 #set(IRODS_PLUGIN_INVOCATION_FUNCTIONS irods_genquery2_invocation_functions)
