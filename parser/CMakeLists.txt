@@ -1,42 +1,43 @@
-cmake_minimum_required(VERSION 3.12 FATAL_ERROR)
-
-project(genquery_flex_bison LANGUAGES C CXX)
-
-set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
-
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_EXTENSIONS OFF)
-
-set(CMAKE_CXX_FLAGS "-stdlib=libc++")
-set(CMAKE_EXE_LINKER_FLAGS "-stdlib=libc++ -Wl,-rpath=/opt/irods-externals/clang13.0.0-0/lib")
-
 find_package(FLEX 2.6.4 REQUIRED)
-find_package(BISON 3.0.4 REQUIRED)
+find_package(BISON 3.5.1 REQUIRED)
 
-FLEX_TARGET(MyScanner lexer.l ${CMAKE_BINARY_DIR}/lexer.cpp)
-BISON_TARGET(MyParser parser.y ${CMAKE_BINARY_DIR}/parser.cpp)
-ADD_FLEX_BISON_DEPENDENCY(MyScanner MyParser)
+set(IRODS_FLEX_LEXER_NAME irods_lexer)
+set(IRODS_BISON_PARSER_NAME irods_parser)
 
-include_directories(
-    ${CMAKE_SOURCE_DIR}
-    ${CMAKE_BINARY_DIR}
-    /opt/irods-externals/clang13.0.0-0/include/c++/v1
-    /opt/irods-externals/boost1.78.0-0/include
-    /opt/irods-externals/fmt8.1.1-0/include
-)
+FLEX_TARGET(${IRODS_FLEX_LEXER_NAME} lexer.l ${CMAKE_CURRENT_BINARY_DIR}/lexer.cpp)
+BISON_TARGET(${IRODS_BISON_PARSER_NAME} parser.y ${CMAKE_CURRENT_BINARY_DIR}/parser.cpp)
+ADD_FLEX_BISON_DEPENDENCY(${IRODS_FLEX_LEXER_NAME} ${IRODS_BISON_PARSER_NAME})
 
-add_executable(
-    gql
-    main.cpp
-    genquery_sql.cpp
-    genquery_wrapper.cpp
-    ${FLEX_MyScanner_OUTPUTS}
-    ${BISON_MyParser_OUTPUTS}
-)
+set(IRODS_PARSER_NAME irods_genquery2_parser)
+set(IRODS_FLEX_OUTPUTS "FLEX_${IRODS_FLEX_LEXER_NAME}_OUTPUTS")
+set(IRODS_BISON_OUTPUTS "BISON_${IRODS_BISON_LEXER_NAME}_OUTPUTS")
+
+add_library(
+  ${IRODS_PARSER_NAME}
+  OBJECT
+  ${CMAKE_CURRENT_SOURCE_DIR}/genquery_sql.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/genquery_wrapper.cpp
+  ${${IRODS_FLEX_OUTPUTS}}
+  ${${IRODS_BISON_OUTPUTS}})
+
+target_include_directories(
+  ${IRODS_PARSER_NAME}
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  ${CMAKE_CURRENT_BINARY_DIR}
+  ${IRODS_EXTERNALS_FULLPATH_BOOST}/include
+  ${IRODS_EXTERNALS_FULLPATH_CLANG}/include/c++/v1
+  ${IRODS_EXTERNALS_FULLPATH_FMT}/include)
 
 target_link_libraries(
-    gql
-    #${FLEX_LIBRARIES} # This causes a compiler error when using C++ (i.e. undefined reference to yylex()).
-    /opt/irods-externals/clang13.0.0-0/lib/libc++.so
-    /opt/irods-externals/fmt8.1.1-0/lib/libfmt.so
-)
+  ${IRODS_PARSER_NAME}
+  #${FLEX_LIBRARIES} # This causes a compiler error when using C++ (i.e. undefined reference to yylex()).
+  ${IRODS_EXTERNALS_FULLPATH_CLANG_RUNTIME}/lib/libc++.so
+  ${IRODS_EXTERNALS_FULLPATH_FMT}/lib/libfmt.so)
+
+# TODO Setup install directives.
+install(
+  FILES
+  "${CMAKE_CURRENT_SOURCE_DIR}/genquery_sql.hpp"
+  "${CMAKE_CURRENT_SOURCE_DIR}/genquery_wrapper.hpp"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/irods")
