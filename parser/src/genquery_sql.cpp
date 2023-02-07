@@ -604,7 +604,7 @@ namespace irods::experimental::api::genquery
                         "resc_name hier, "
                         "case "
                             "when resc_parent = '' then 0 "
-                            "else cast(resc_parent as bigint) "
+                            "else cast(resc_parent as bigint) " // TODO Is bigint supported in all databases?
                         "end parent_id "
                     "from "
                         "r_resc_main "

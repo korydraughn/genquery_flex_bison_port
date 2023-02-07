@@ -61,7 +61,7 @@ add_subdirectory(client)
 # TODO This is for testing. Remove once everything works.
 set(CPACK_PACKAGE_NAME irods-genquery2)
 set(CPACK_PACKAGE_CONTACT "Kory Draughn <korydraughn@renci.org>")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "irods-dev, libc6")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "irods-dev, libc6, flex, bison")
 set(CPACK_GENERATOR DEB)
 include(CPack)
 
