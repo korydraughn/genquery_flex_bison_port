@@ -24,9 +24,9 @@ This option causes make_* functions to be generated for each token kind.
 
 %code top
 {
-    #include "genquery_scanner.hpp"
+    #include "irods/genquery_scanner.hpp"
     #include "parser.hpp"
-    #include "genquery_wrapper.hpp"
+    #include "irods/genquery_wrapper.hpp"
     #include "location.hh"
 
     static gq::parser::symbol_type yylex(gq::scanner& _scanner, gq::wrapper& _wrapper)
@@ -37,7 +37,7 @@ This option causes make_* functions to be generated for each token kind.
 
 %code requires
 {
-    #include "genquery_ast_types.hpp"
+    #include "irods/genquery_ast_types.hpp"
 
     #include <string>
     #include <vector>

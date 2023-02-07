@@ -1,9 +1,9 @@
-#include "genquery_sql.hpp"
+#include "irods/genquery_sql.hpp"
 
-#include "genquery_ast_types.hpp"
-#include "vertex_property.hpp"
-#include "edge_property.hpp"
-#include "table_column_key_maps.hpp"
+#include "irods/genquery_ast_types.hpp"
+#include "irods/vertex_property.hpp"
+#include "irods/edge_property.hpp"
+#include "irods/table_column_key_maps.hpp"
 
 #include <boost/graph/graph_traits.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -826,7 +826,7 @@ namespace irods::experimental::api::genquery
 
             fmt::print("GENERATED SQL => [{}]\n", sql);
 
-            return "";
+            return sql;
         }
         catch (const std::exception& e) {
             fmt::print(stderr, "Exception: {}\n", e.what());

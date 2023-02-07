@@ -3,7 +3,7 @@
 
 // The API plugin number that identifies the API endpoint implemented in this project template.
 // User-defined API plugin numbers start at 1,000,000.
-static const int IRODS_APN_GENQUERY2 = 1'000'000;
+static const int IRODS_APN_GENQUERY2 = 1'000'001;
 
 typedef struct genquery2_input
 {

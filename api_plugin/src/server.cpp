@@ -5,7 +5,11 @@
 #include <irods/catalog_utilities.hpp> // Requires linking against libnanodbc.so
 #include <irods/irods_logger.hpp>
 //#include <irods/irods_re_serialization.hpp>
+#include <irods/procApiRequest.h>
 #include <irods/rodsErrorTable.h>
+
+#include "irods/genquery_sql.hpp"
+#include "irods/genquery_wrapper.hpp"
 
 #include <fmt/format.h>
 
@@ -39,7 +43,7 @@ namespace
 			return SYS_INVALID_INPUT_PARAM;
 		}
 
-		log_api::info("Project Template API received: [{}]", _msg);
+		log_api::info("GenQuery 2 API endpoint received: [{}]", _msg);
 
 		// Redirect to the catalog service provider so that we can query the database.
 		try {
@@ -48,9 +52,14 @@ namespace
 			if (!ic::connected_to_catalog_provider(*_comm)) {
 				log_api::trace("Redirecting request to catalog service provider.");
 				[[maybe_unused]] auto* host_info = ic::redirect_to_catalog_provider(*_comm);
-                                // TODO procApiRequest
-				//return rc_genquery2(host_info->conn, _msg, _resp);
-                                return 0;
+
+                                return procApiRequest(
+                                        host_info->conn,
+                                        IRODS_APN_GENQUERY2,
+                                        const_cast<char*>(_msg), // NOLINT(cppcoreguidelines-pro-type-const-cast)
+                                        nullptr,
+                                        reinterpret_cast<void**>(_resp), // NOLINT(cppcoreguidelines-pro-type-reinterpret-cast)
+                                        nullptr);
 			}
 
 			ic::throw_if_catalog_provider_service_role_is_invalid();
@@ -60,8 +69,10 @@ namespace
 			return e.code();
 		}
 
-		// Echo the message back to the client.
-		*_resp = strdup(fmt::format("YOUR MESSAGE: {}", _msg).c_str());
+		const auto ast = gq::wrapper::parse(_msg);
+                const auto sql = gq::sql(ast);
+                log_api::info("Returning to client: [{}]", sql);
+		*_resp = strdup(sql.c_str());
 
 		return 0;
 	} // rs_genquery2

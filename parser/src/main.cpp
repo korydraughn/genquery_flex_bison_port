@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "genquery_sql.hpp"
-#include "genquery_wrapper.hpp"
+#include "irods/genquery_sql.hpp"
+#include "irods/genquery_wrapper.hpp"
 
 int main(int _argc, char* _argv[])
 {

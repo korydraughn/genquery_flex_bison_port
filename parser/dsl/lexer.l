@@ -1,6 +1,6 @@
 %{
-    #include "genquery_scanner.hpp"
-    #include "genquery_wrapper.hpp"
+    #include "irods/genquery_scanner.hpp"
+    #include "irods/genquery_wrapper.hpp"
     #include "parser.hpp"
     #include "location.hh"
 
@@ -11,10 +11,7 @@
     #define YY_USER_ACTION wrapper_.increment_location(yyleng);
 %}
 
-%option c++
-%option warn
-%option nodefault
-%option noyywrap
+%option c++ warn nodefault noyywrap
 %option yyclass="scanner"
 %option prefix="Genquery_"
 

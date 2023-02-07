@@ -56,6 +56,7 @@ add_compile_options(-Wall -Wextra -Wconversion -Wshadow -Wpedantic)
 add_subdirectory(parser)
 add_subdirectory(api_plugin)
 add_subdirectory(microservice)
+add_subdirectory(client)
 
 # TODO This is for testing. Remove once everything works.
 set(CPACK_PACKAGE_NAME irods-genquery2)

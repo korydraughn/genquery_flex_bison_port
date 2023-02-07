@@ -1,4 +1,4 @@
-#include "genquery_wrapper.hpp"
+#include "irods/genquery_wrapper.hpp"
 
 #include <sstream>
 

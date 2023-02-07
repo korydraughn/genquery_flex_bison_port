@@ -59,7 +59,7 @@ foreach (IRODS_MODULE_VARIANT IN ITEMS client server)
   
 #  set_target_properties(${IRODS_MODULE_NAME} PROPERTIES VERSION ${IRODS_VERSION})
 #  set_target_properties(${IRODS_MODULE_NAME} PROPERTIES SOVERSION ${IRODS_VERSION})
-  set_target_properties(${IRODS_MODULE_NAME} PROPERTIES INTERFACE_POSITION_INDEPENDENT_CODE TRUE) # TODO What is this?
+  set_target_properties(${IRODS_MODULE_NAME} PROPERTIES INTERFACE_POSITION_INDEPENDENT_CODE TRUE)
   set_target_properties(${IRODS_MODULE_NAME} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
   target_compile_definitions(
@@ -71,7 +71,9 @@ foreach (IRODS_MODULE_VARIANT IN ITEMS client server)
   target_include_directories(
     ${IRODS_MODULE_NAME}
     PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_BINARY_DIR}/parser>
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/parser/include>
     ${IRODS_INCLUDE_DIRS}
     ${IRODS_EXTERNALS_FULLPATH_BOOST}/include
     ${IRODS_EXTERNALS_FULLPATH_FMT}/include
@@ -103,6 +105,11 @@ target_compile_definitions(
   RODS_SERVER
   ENABLE_RE
   IRODS_ENABLE_SYSLOG)
+
+target_link_libraries(
+  ${IRODS_MODULE_NAME_PREFIX}_server
+  PRIVATE
+  $<TARGET_OBJECTS:irods_genquery2_parser>)
 
 install(
   FILES

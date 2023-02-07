@@ -33,7 +33,7 @@ target_link_libraries(
   PRIVATE
   irods_server)
 
-add_dependencies(${IRODS_MICROSERVICE_NAME} irods_genquery2_parser)
+add_dependencies(${IRODS_MICROSERVICE_NAME} irods_genquery2_server)
 
 install(
   TARGETS ${IRODS_MICROSERVICE_NAME}

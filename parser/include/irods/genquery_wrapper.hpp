@@ -1,9 +1,9 @@
 #ifndef IRODS_GENQUERY_WRAPPER_HPP
 #define IRODS_GENQUERY_WRAPPER_HPP
 
-#include "genquery_ast_types.hpp"
+#include "irods/genquery_ast_types.hpp"
+#include "irods/genquery_scanner.hpp"
 #include "parser.hpp"
-#include "genquery_scanner.hpp"
 
 #include <cstdint>
 #include <string>
