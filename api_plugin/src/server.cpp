@@ -2,6 +2,7 @@
 #include "irods/plugins/api/genquery2_common.h" // For API plugin number.
 
 #include <irods/apiHandler.hpp>
+#include <irods/catalog.hpp> // Requires linking against libnanodbc.so
 #include <irods/catalog_utilities.hpp> // Requires linking against libnanodbc.so
 #include <irods/irods_logger.hpp>
 //#include <irods/irods_re_serialization.hpp>
@@ -12,6 +13,8 @@
 #include "irods/genquery_wrapper.hpp"
 
 #include <fmt/format.h>
+#include <nlohmann/json.hpp>
+#include <nanodbc/nanodbc.h>
 
 #include <cstring> // For strdup.
 
@@ -72,7 +75,51 @@ namespace
 		const auto ast = gq::wrapper::parse(_msg);
                 const auto sql = gq::sql(ast);
                 log_api::info("Returning to client: [{}]", sql);
-		*_resp = strdup(sql.c_str());
+
+                if (sql.empty()) {
+                    log_api::error("Could not generate SQL from GenQuery.");
+                    return SYS_INVALID_INPUT_PARAM;
+                }
+
+                try {
+                    auto [db_inst, db_conn] = irods::experimental::catalog::new_database_connection();
+
+                    nanodbc::statement stmt{db_conn};
+                    nanodbc::prepare(stmt, sql);
+
+                    const auto& values = gq::get_bind_values();
+                    for (std::vector<std::string>::size_type i = 0; i < values.size(); ++i) {
+                        stmt.bind(static_cast<short>(i), values.at(i).c_str());
+                    }
+
+                    using json = nlohmann::json;
+
+                    auto json_array = json::array();
+                    auto json_row = json::array();
+
+                    auto row = nanodbc::execute(stmt);
+                    const auto n_cols = row.columns();
+
+                    while (row.next()) {
+                        // TODO The parser needs to report which columns are being projected.
+                        // Can this information be retrieved from nanodbc?
+                        // What happens if we can do that, but then switch from nanodbc to something else?
+                        // The right answer is to make the parser return the columns which are to be projected. No dependencies on 3rd-party libs.
+                        for (std::remove_cvref_t<decltype(n_cols)> i = 0; i < n_cols; ++i) {
+                            json_row.push_back(row.get<std::string>(i));
+                        }
+
+                        json_array.push_back(json_row);
+                        json_row.clear();
+                    }
+
+                    // TODO Return the resultset as JSON?
+                    // How expensive is it to serialize into JSON? Don't overthink it man. Just make it work first.
+                    *_resp = strdup(json_array.dump().c_str());
+                }
+                catch (const std::exception& e) {
+                    log_api::error("Caught exception while executing query: {}", e.what());
+                }
 
 		return 0;
 	} // rs_genquery2

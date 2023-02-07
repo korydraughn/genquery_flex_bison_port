@@ -211,4 +211,3 @@ namespace irods::experimental::api::genquery
 } // namespace irods::experimental::api::genquery
 
 #endif // IRODS_GENQUERY_AST_TYPES_HPP
-

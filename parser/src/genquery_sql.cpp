@@ -834,6 +834,11 @@ namespace irods::experimental::api::genquery
 
         return "";
     }
+
+    auto get_bind_values() noexcept -> std::vector<std::string>&
+    {
+        return values;
+    }
 } // namespace irods::experimental::api::genquery
 
 /*

@@ -37,7 +37,7 @@ int main(int _argc, char* _argv[]) // NOLINT(modernize-use-trailing-return-type)
                     return 1;
                 }
 
-                fmt::print("SQL: {}\n", sql);
+                fmt::print(fmt::runtime(sql));
                 std::free(sql);
 
 		return 0;
