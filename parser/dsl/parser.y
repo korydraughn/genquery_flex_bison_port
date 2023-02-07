@@ -70,7 +70,7 @@ The following can be replaced by %param.
 %token BETWEEN EQUAL NOT_EQUAL LIKE IN
 %token LESS_THAN GREATER_THAN LESS_THAN_OR_EQUAL_TO GREATER_THAN_OR_EQUAL_TO
 %token ORDER BY ASC DESC
-%token OFFSET FETCH FIRST ROWS ONLY
+%token OFFSET FETCH FIRST ROWS ONLY LIMIT
 %token CASE WHEN ELSE END
 %token GROUP HAVING EXISTS IS NULL
 %token CAST AS
@@ -137,8 +137,11 @@ sort_expr:
 range:
     OFFSET POSITIVE_INTEGER  { std::swap($$.offset, $2); }
   | OFFSET POSITIVE_INTEGER FETCH FIRST POSITIVE_INTEGER ROWS ONLY  { std::swap($$.offset, $2); std::swap($$.number_of_rows, $5); }
+  | OFFSET POSITIVE_INTEGER LIMIT POSITIVE_INTEGER  { std::swap($$.offset, $2); std::swap($$.number_of_rows, $4); }
   | FETCH FIRST POSITIVE_INTEGER ROWS ONLY  { std::swap($$.number_of_rows, $3); }
   | FETCH FIRST POSITIVE_INTEGER ROWS ONLY OFFSET POSITIVE_INTEGER  { std::swap($$.offset, $7); std::swap($$.number_of_rows, $3); }
+  | LIMIT POSITIVE_INTEGER  { std::swap($$.number_of_rows, $2); }
+  | LIMIT POSITIVE_INTEGER OFFSET POSITIVE_INTEGER  { std::swap($$.offset, $4); std::swap($$.number_of_rows, $2); }
 
 selections:
     selection  { $$ = gq::Selections{std::move($1)}; }

@@ -5,7 +5,7 @@
 #include <irods/catalog.hpp> // Requires linking against libnanodbc.so
 #include <irods/catalog_utilities.hpp> // Requires linking against libnanodbc.so
 #include <irods/irods_logger.hpp>
-//#include <irods/irods_re_serialization.hpp>
+//#include <irods/irods_re_serialization.hpp> // For custom data types that can be used in the NREP.
 #include <irods/procApiRequest.h>
 #include <irods/rodsErrorTable.h>
 
@@ -72,16 +72,16 @@ namespace
 			return e.code();
 		}
 
-		const auto ast = gq::wrapper::parse(_msg);
-                const auto sql = gq::sql(ast);
-                log_api::info("Returning to client: [{}]", sql);
-
-                if (sql.empty()) {
-                    log_api::error("Could not generate SQL from GenQuery.");
-                    return SYS_INVALID_INPUT_PARAM;
-                }
-
                 try {
+                    const auto ast = gq::wrapper::parse(_msg);
+                    const auto sql = gq::sql(ast);
+                    log_api::info("Returning to client: [{}]", sql);
+
+                    if (sql.empty()) {
+                        log_api::error("Could not generate SQL from GenQuery.");
+                        return SYS_INVALID_INPUT_PARAM;
+                    }
+
                     auto [db_inst, db_conn] = irods::experimental::catalog::new_database_connection();
 
                     nanodbc::statement stmt{db_conn};
@@ -117,8 +117,13 @@ namespace
                     // How expensive is it to serialize into JSON? Don't overthink it man. Just make it work first.
                     *_resp = strdup(json_array.dump().c_str());
                 }
+                catch (const nanodbc::database_error& e) {
+                    log_api::error("Caught database exception while executing query: {}", e.what());
+                    return SYS_LIBRARY_ERROR;
+                }
                 catch (const std::exception& e) {
                     log_api::error("Caught exception while executing query: {}", e.what());
+                    return SYS_LIBRARY_ERROR;
                 }
 
 		return 0;

@@ -31,6 +31,7 @@
 (?i:asc)               return gq::parser::make_ASC(gq::location());
 (?i:desc)              return gq::parser::make_DESC(gq::location());
 (?i:offset)            return gq::parser::make_OFFSET(gq::location());
+(?i:limit)             return gq::parser::make_LIMIT(gq::location());
 (?i:fetch)             return gq::parser::make_FETCH(gq::location());
 (?i:first)             return gq::parser::make_FIRST(gq::location());
 (?i:rows)              return gq::parser::make_ROWS(gq::location());
