@@ -55,14 +55,15 @@ add_compile_options(-Wall -Wextra -Wconversion -Wshadow -Wpedantic)
 
 add_subdirectory(parser)
 add_subdirectory(api_plugin)
-add_subdirectory(microservice)
+#add_subdirectory(microservice)
+add_subdirectory(rule_engine)
 add_subdirectory(client)
 
 # TODO This is for testing. Remove once everything works.
-set(CPACK_PACKAGE_NAME irods-genquery2)
+set(CPACK_PACKAGE_NAME irods-api-plugin-genquery2)
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "An experimental reimplementation of the iRODS GenQuery parser.")
 set(CPACK_PACKAGE_CONTACT "Kory Draughn <korydraughn@renci.org>")
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "irods-runtime, libc6, flex (>= 2.6.1), bison (>= 3.5.1)")
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "irods-runtime, libc6, flex (>= 2.6.4), bison (>= 3.5.1)")
 set(CPACK_GENERATOR DEB)
 include(CPack)
 

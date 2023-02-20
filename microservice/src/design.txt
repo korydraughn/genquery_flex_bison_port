@@ -1,0 +1,52 @@
+The following is an example of what the GenQuery2 microservice API may look like.
+
+    msi_genquery2_execute(*results, "select COLL_NAME, DATA_NAME");
+
+    while (*msi_genquery2_next_row(*results)) {
+        *coll_name = msi_genquery2_value(*results, 0);
+        *data_name = msi_genquery2_value(*results, 1);
+
+        *coll_name = msi_genquery2_column(*results, 0);
+        *data_name = msi_genquery2_column(*results, 1);
+
+        writeLine("serverLog", "logical path = *coll_name/*data_name");
+    }
+
+    # How do we close the handle if an error occurs before we make it here?
+    # Perhaps, the handles are stored in memory and they are closed on agent shutdown.
+    msi_genquery2_close(*results);
+
+I think the only path forward for the microservice is to combine them all. This design allows us to
+track multiple queries in memory.
+
+    msi_genquery2(*ctx, "execute", "select COLL_NAME, DATA_NAME");
+
+    while (*msi_genquery2("next_row", *ctx)) {
+        msi_genquery2(*ctx, "get_column", 0, *coll_name);
+        msi_genquery2(*ctx, "get_column", 1, *data_name);
+        writeLine("serverLog", "logical path = *coll_name/*data_name");
+    }
+
+    # How do we close the handle if an error occurs before we make it here?
+    # Perhaps, the handles are stored in memory and they are closed on agent shutdown.
+    msi_genquery2(*ctx, "close");
+
+Or maybe like this.
+
+    # Create a new GenQuery2 context.
+    msi_genquery2_init(*ctx);
+
+    # Run a query and store the parsed JSON object in the context.
+    # The context type is not accessible. It is simply a handle to an opaque type.
+    # For now, it holds the number of rows, the current row to read data from.
+    msi_genquery2_execute(*ctx, "select COLL_NAME, DATA_NAME");
+
+    while (*msi_genquery2_next_row(*ctx)) {
+        msi_genquery2_column(*ctx, 0, *coll_name);
+        msi_genquery2_column(*ctx, 1, *data_name);
+        writeLine("serverLog", "logical path = *coll_name/*data_name");
+    }
+
+    # How do we close the handle if an error occurs before we make it here?
+    # Perhaps, the handles are stored in memory and they are closed on agent shutdown.
+    msi_genquery2_destroy(*ctx);

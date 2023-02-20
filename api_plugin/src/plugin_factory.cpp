@@ -32,7 +32,7 @@ extern "C" auto plugin_factory(
 		op,
 		"api_genquery2",
 		irods::clearInStruct_noop,
-		irods::clearOutStruct_noop,
+		irods::clearOutStruct_noop, // TODO This blocks support for 4.2.
 		fn_ptr
 	};
 	// clang-format on
