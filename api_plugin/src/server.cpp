@@ -5,6 +5,7 @@
 #include <irods/catalog.hpp> // Requires linking against libnanodbc.so
 #include <irods/catalog_utilities.hpp> // Requires linking against libnanodbc.so
 #include <irods/irods_logger.hpp>
+#include <irods/irods_rs_comm_query.hpp>
 //#include <irods/irods_re_serialization.hpp> // For custom data types that can be used in the NREP.
 #include <irods/procApiRequest.h>
 #include <irods/rodsErrorTable.h>
@@ -74,7 +75,12 @@ namespace
 
                 try {
                     const auto ast = gq::wrapper::parse(_msg);
-                    const auto sql = gq::sql(ast);
+
+                    gq::options opts;
+                    opts.username = _comm->clientUser.userName; // TODO Handle remote users?
+                    opts.admin_mode = irods::is_privileged_client(*_comm);
+                    const auto sql = gq::sql(ast, opts);
+
                     log_api::info("Returning to client: [{}]", sql);
 
                     if (sql.empty()) {

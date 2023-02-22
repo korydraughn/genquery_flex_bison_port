@@ -511,7 +511,7 @@ namespace irods::experimental::api::genquery
         return fmt::format("({})", sql(condition.conditions));
     }
 
-    std::string sql(const Select& select)
+    std::string sql(const Select& select, const options& _opts)
     {
         try {
             fmt::print("### PHASE 1: Gather\n\n");
@@ -706,6 +706,32 @@ namespace irods::experimental::api::genquery
                 sql += fmt::format(" {}", fmt::join(inner_joins, " "));
             }
 
+            // TODO Permission checking.
+            if (!_opts.admin_mode) {
+                /*
+                    select d.*
+                    from R_DATA_MAIN d
+                    inner join R_COLL_MAIN c on doa.object_id = d.data_id
+                    inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
+                    inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
+                    inner join R_USER_MAIN du on du.user_id = doa.user_id
+                    inner join R_USER_MAIN cu on cu.user_id = coa.user_id
+                    where doa.access_type_id >= ? and
+                          coa.access_type_id >= ?
+                 */
+                if (const auto iter = table_aliases.find("R_DATA_MAIN"); iter != std::end(table_aliases)) {
+                    sql += fmt::format(" inner join R_OBJT_ACCESS pdoa on {}.data_id = pdoa.object_id"
+                                       " inner join R_USER_MAIN pdu on pdoa.user_id = pdu.user_id",
+                                       iter->second);
+                }
+
+                if (const auto iter = table_aliases.find("R_COLL_MAIN"); iter != std::end(table_aliases)) {
+                    sql += fmt::format(" inner join R_OBJT_ACCESS pcoa on {}.coll_id = pcoa.object_id"
+                                       " inner join R_USER_MAIN pcu on pcoa.user_id = pcu.user_id",
+                                       iter->second);
+                }
+            }
+
             // TODO The following SQL statements can be stored as a format string for reuse. Placeholders can
             // be given names so that we can replace markers that match the same value.
             //
@@ -752,6 +778,72 @@ namespace irods::experimental::api::genquery
 
             if (!conds.empty()) {
                 sql += fmt::format(" where {}", conds);
+
+                // TODO Permission checking.
+                if (!_opts.admin_mode) {
+                    /*
+                        select d.*
+                        from R_DATA_MAIN d
+                        inner join R_COLL_MAIN c on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
+                        inner join R_USER_MAIN du on du.user_id = doa.user_id
+                        inner join R_USER_MAIN cu on cu.user_id = coa.user_id
+                        where doa.access_type_id >= ? and du.user_name = ? and
+                              coa.access_type_id >= ? and cu.user_name = ?
+                     */
+                    const auto d_iter = table_aliases.find("R_DATA_MAIN");
+                    const auto c_iter = table_aliases.find("R_COLL_MAIN");
+                    const auto end = std::end(table_aliases);
+
+                    if (d_iter != end && c_iter != end) {
+                        sql += fmt::format(" and pdu.user_name = ? and pcu.user_name = ? and"
+                                           " pdoa.access_type_id >= 1050 and pcoa.access_type_id >= 1050");
+                        values.push_back(std::string{_opts.username});
+                        values.push_back(std::string{_opts.username});
+                    }
+                    else if (d_iter != end) {
+                        sql += fmt::format(" and pdu.user_name = ? and pdoa.access_type_id >= 1050");
+                        values.push_back(std::string{_opts.username});
+                    }
+                    else if (c_iter != end) {
+                        sql += fmt::format(" and pcu.user_name = ? and pcoa.access_type_id >= 1050");
+                        values.push_back(std::string{_opts.username});
+                    }
+                }
+            }
+            else {
+                // TODO Permission checking.
+                if (!_opts.admin_mode) {
+                    /*
+                        select d.*
+                        from R_DATA_MAIN d
+                        inner join R_COLL_MAIN c on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
+                        inner join R_USER_MAIN du on du.user_id = doa.user_id
+                        inner join R_USER_MAIN cu on cu.user_id = coa.user_id
+                        where doa.access_type_id >= ? and du.user_name = ? and
+                              coa.access_type_id >= ? and cu.user_name = ?
+                     */
+                    const auto d_iter = table_aliases.find("R_DATA_MAIN");
+                    const auto c_iter = table_aliases.find("R_COLL_MAIN");
+                    const auto end = std::end(table_aliases);
+
+                    if (d_iter != end && c_iter != end) {
+                        sql += fmt::format(" where pdu.user_name = ? and pcu.user_name = ? and pdoa.access_type_id >= 1050 and pcoa.access_type_id >= 1050");
+                        values.push_back(std::string{_opts.username});
+                        values.push_back(std::string{_opts.username});
+                    }
+                    else if (d_iter != end) {
+                        sql += fmt::format(" where pdu.user_name = ? and pdoa.access_type_id >= 1050");
+                        values.push_back(std::string{_opts.username});
+                    }
+                    else if (c_iter != end) {
+                        sql += fmt::format(" where pcu.user_name = ? and pcoa.access_type_id >= 1050");
+                        values.push_back(std::string{_opts.username});
+                    }
+                }
             }
 
             if (!select.order_by.sort_expressions.empty()) {
@@ -842,6 +934,22 @@ namespace irods::experimental::api::genquery
 } // namespace irods::experimental::api::genquery
 
 /*
+    R_OBJT_ACCESS: contains mappings between data objects/collections and users/groups.
+        - object_id: data_id or coll_id
+        - user_id: user or group id
+        - access_type_id: permission level (integer)
+
+    select d.*
+    from R_DATA_MAIN d
+    inner join R_COLL_MAIN c on doa.object_id = d.data_id
+    inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
+    inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
+    inner join R_USER_MAIN du on du.user_id = doa.user_id
+    inner join R_USER_MAIN cu on cu.user_id = coa.user_id
+    where doa.access_type_id >= ? and du.user_name = ? and
+          coa.access_type_id >= ? and cu.user_name = ?
+
+
     The following query will produce a resource hierarchy starting from a leaf resource ID.
     Keep in mind that the ::<type> syntax may be specific to PostgreSQL. Remember to check the
     other database systems for compatibility.

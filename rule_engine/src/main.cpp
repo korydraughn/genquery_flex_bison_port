@@ -193,6 +193,7 @@ namespace
         try {
             auto iter = std::begin(_rule_arguments);
             const auto* ctx_handle = boost::any_cast<std::string*>(*iter);
+            log_rule_engine::info("ctx_handle = [{}]", *ctx_handle); // FIXME It's empty in the PREP! :-(
             const auto ctx_handle_index = std::stoll(*ctx_handle);
 
             if (ctx_handle_index < 0 || static_cast<decltype(gq2_context)::size_type>(ctx_handle_index) >= gq2_context.size()) {

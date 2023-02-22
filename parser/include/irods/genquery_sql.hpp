@@ -4,10 +4,17 @@
 #include "irods/genquery_ast_types.hpp"
 
 #include <string>
+#include <string_view>
 
 namespace irods::experimental::api::genquery
 {
-    auto sql(const Select& _select_statement) -> std::string;
+    struct options
+    {
+        std::string_view username;
+        bool admin_mode = false;
+    };
+
+    auto sql(const Select& _select, const options& _opts) -> std::string;
 
     auto get_bind_values() noexcept -> std::vector<std::string>&;
 } // namespace irods::experimental::api::genquery
