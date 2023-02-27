@@ -24,6 +24,8 @@
 
 namespace
 {
+    namespace gq = irods::experimental::api::genquery;
+
     // clang-format off
     using graph_type         = boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS,
                                                      irods::experimental::genquery::vertex_property,
@@ -123,6 +125,33 @@ namespace
         {"{}.user_id = {}.user_id"},
     }); // table_joins
 
+    // The following SQL is a recursive WITH clause which produces all resource hierarchies
+    // in the database upon request.
+    constexpr const char* data_resc_hier_with_clause =
+        "with recursive T as ("
+            "select "
+                "resc_id, "
+                "resc_name hier, "
+                "case "
+                    "when resc_parent = '' then 0 "
+                    "else cast(resc_parent as bigint) " // TODO Is bigint supported in all databases?
+                "end parent_id "
+            "from "
+                "r_resc_main "
+            "where "
+                "resc_id > 0 "
+            "union all "
+            "select "
+                "T.resc_id, "
+                "cast((U.resc_name || ';' || T.hier) as varchar(250)), "
+                "case "
+                    "when U.resc_parent = '' then 0 "
+                    "else cast(U.resc_parent as bigint) "
+                "end parent_id "
+            "from T "
+            "inner join r_resc_main U on U.resc_id = T.parent_id"
+        ") ";
+
     constexpr auto table_name_index(const std::string_view _table_name) -> std::size_t
     {
         for (auto i = 0ull; i < table_names.size(); ++i) {
@@ -134,21 +163,182 @@ namespace
         throw std::invalid_argument{fmt::format("table [{}] not supported", _table_name)};
     } // table_name_index
 
+    int table_alias_id = 0;
+
     auto generate_table_alias() -> std::string
     {
-        static int id = 0;
-        return fmt::format("t{}", id++);
+        return fmt::format("t{}", table_alias_id++);
     } // generate_table_alias
 
-    constexpr auto is_metadata_column(std::string_view _column) -> bool
+    auto generate_inner_joins(const graph_type& _graph,
+                              const std::vector<std::string_view>& _tables,
+                              const std::map<std::string, std::string>& _table_aliases) -> std::vector<std::string>
     {
-        // clang-format off
-        return _column.starts_with("META_D") ||
-               _column.starts_with("META_C") ||
-               _column.starts_with("META_R") ||
-               _column.starts_with("META_U");
-        // clang-format on
-    } // is_metadata_column
+        const auto get_table_join = [&_graph, &_table_aliases](const auto& _t1, const auto& _t2) -> std::string
+        {
+            const auto t1_idx = table_name_index(_t1);
+            const auto t2_idx = table_name_index(_t2);
+            const auto [edge, exists] = boost::edge(t1_idx, t2_idx, _graph);
+
+            if (!exists) {
+                return "";
+            }
+
+            const auto t1_alias = _table_aliases.at(std::string{_t1});
+            const auto t2_alias = _table_aliases.at(std::string{_t2});
+            const auto sql = fmt::format("inner join {} {} on {}", _t2, t2_alias, _graph[edge].table_join_fmt);
+
+            return fmt::format(fmt::runtime(sql), t1_alias, t2_alias);
+        };
+
+        // The order of inner-joins matters when they interleave.
+        //
+        // IDEA?
+        // 1. Find a inner joins that connect to the table in the FROM clause.
+        // 2. Find next joins based on what criteria?
+        //
+        // THOUGHTS:
+        // Should there be a join table order?
+        // Some tables don't care about order while others do.
+        std::vector<std::string> inner_joins;
+        inner_joins.reserve(_tables.size() - 1);
+
+        std::vector<std::string> remaining{std::begin(_tables) + 1, std::end(_tables)};
+        fmt::print("remaining = [{}]\n", fmt::join(remaining, ", "));
+
+        std::vector<std::string> processed;
+        processed.reserve(_tables.size());
+        processed.push_back(std::string{_tables.front()});
+        fmt::print("processed = [{}]\n", fmt::join(processed, ", "));
+
+        for (decltype(_tables.size()) i = 0; i < _tables.size() - 1; ++i) {
+            const auto& last = processed.back();
+
+            for (auto iter = std::begin(remaining); iter != std::end(remaining);) {
+                if (auto j = get_table_join(last, *iter); !j.empty()) {
+                    inner_joins.push_back(std::move(j));
+                    processed.emplace_back(*iter);
+                    iter = remaining.erase(iter);
+                }
+                else {
+                    ++iter;
+                }
+            }
+        }
+
+        return inner_joins;
+    } // generate_inner_joins
+
+    auto generate_joins_for_metadata_columns(const std::map<std::string, std::string>& _table_aliases,
+                                             bool _add_joins_for_meta_data,
+                                             bool _add_joins_for_meta_coll,
+                                             bool _add_joins_for_meta_resc,
+                                             bool _add_joins_for_meta_user) -> std::string
+    {
+
+        std::string sql;
+
+        if (_add_joins_for_meta_data) {
+            // select distinct d.data_id, c.coll_name, d.data_name, mmd.meta_attr_name, mmc.meta_attr_name
+            // from R_COLL_MAIN c
+            // inner join R_DATA_MAIN d on c.coll_id = d.coll_id
+            // left join R_OBJT_METAMAP ommd on d.data_id = ommd.object_id
+            // left join R_OBJT_METAMAP ommc on c.coll_id = ommc.object_id
+            // left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id
+            // left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id
+            // where mmd.meta_attr_name = 'job' or
+            //       mmc.meta_attr_name = 'nope';
+            sql += fmt::format(" left join R_OBJT_METAMAP ommd on {}.data_id = ommd.object_id "
+                               "left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id",
+                               _table_aliases.at("R_DATA_MAIN"));
+        }
+
+        if (_add_joins_for_meta_coll) {
+            sql += fmt::format(" left join R_OBJT_METAMAP ommc on {}.coll_id = ommc.object_id "
+                               "left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id",
+                               _table_aliases.at("R_COLL_MAIN"));
+        }
+
+        if (_add_joins_for_meta_resc) {
+            sql += fmt::format(" left join R_OBJT_METAMAP ommr on {}.resc_id = ommr.object_id "
+                               "left join R_META_MAIN mmr on ommr.meta_id = mmr.meta_id",
+                               _table_aliases.at("R_RESC_MAIN"));
+        }
+
+        if (_add_joins_for_meta_user) {
+            sql += fmt::format(" left join R_OBJT_METAMAP ommu on {}.user_id = ommu.object_id "
+                               "left join R_META_MAIN mmu on ommu.meta_id = mmu.meta_id",
+                               _table_aliases.at("R_USER_MAIN"));
+        }
+
+        return sql;
+    } // generate_joins_for_metadata_columns
+
+    auto generate_order_by_clause(const gq::order_by& _order_by,
+                                  const std::map<std::string, std::string>& _table_aliases,
+                                  const std::map<std::string_view, gq::column_info>& _column_name_mappings,
+                                  const std::vector<const gq::column*>& ast_column_ptrs) -> std::string
+    {
+        if (_order_by.sort_expressions.empty()) {
+            return "";
+        }
+
+        const auto& sort_expressions = _order_by.sort_expressions;
+
+        std::vector<std::string> sort_expr;
+        sort_expr.reserve(sort_expressions.size());
+
+        for (const auto& se : sort_expressions) {
+            const auto iter = _column_name_mappings.find(se.column);
+
+            if (iter == std::end(_column_name_mappings)) {
+                throw std::invalid_argument{fmt::format("unknown column in order-by clause: {}", se.column)};
+            }
+
+            auto is_special_column = true;
+            std::string_view alias;
+
+            // clang-format off
+            if      (se.column.starts_with("META_D")) { alias = "mmd"; }
+            else if (se.column.starts_with("META_C")) { alias = "mmc"; }
+            else if (se.column.starts_with("META_R")) { alias = "mmr"; }
+            else if (se.column.starts_with("META_U")) { alias = "mmu"; }
+            else if (se.column == "DATA_RESC_HIER")   { alias = "T"; }
+            else                                      { is_special_column = false; }
+            // clang-format on
+
+            if (!is_special_column) {
+                alias = _table_aliases.at(std::string{iter->second.table});
+            }
+
+            const auto ast_iter = std::find_if(std::begin(ast_column_ptrs), std::end(ast_column_ptrs),
+                [&se](const irods::experimental::api::genquery::column* _p)
+                {
+                    return _p->name == se.column;
+                });
+
+            if (std::end(ast_column_ptrs) == ast_iter) {
+                throw std::invalid_argument{"cannot generate SQL from General Query."};
+            }
+
+            if ((*ast_iter)->type_name.empty()) {
+                sort_expr.push_back(fmt::format("{}.{} {}",
+                                                alias,
+                                                iter->second.name,
+                                                se.ascending_order ? "asc" : "desc"));
+            }
+            else {
+                sort_expr.push_back(fmt::format("cast({}.{} as {}) {}",
+                                                alias,
+                                                iter->second.name,
+                                                (*ast_iter)->type_name,
+                                                se.ascending_order ? "asc" : "desc"));
+            }
+        }
+
+        // All columns in the order by clause must exist in the list of columns to project.
+        return fmt::format(" order by {}", fmt::join(sort_expr, ", "));
+    } // generate_order_by_clause
 } // anonymous namespace
 
 namespace irods::experimental::api::genquery
@@ -159,11 +349,17 @@ namespace irods::experimental::api::genquery
     bool add_joins_for_meta_coll = false;
     bool add_joins_for_meta_resc = false;
     bool add_joins_for_meta_user = false;
+
+    bool add_joins_for_data_perms = false;
+    bool add_joins_for_coll_perms = false;
+
     bool add_sql_for_data_resc_hier = false;
 
     bool requested_resc_hier = false;
 
-    std::vector<const Column*> ast_column_ptrs;
+    // Holds pointers to column objects which contain SQL CAST syntax.
+    // These pointers allow the parser to forward the SQL CAST text to the final output.
+    std::vector<const column*> ast_column_ptrs;
 
     std::vector<std::string> columns_for_select_clause;
     std::vector<std::string> columns_for_where_clause;
@@ -197,55 +393,100 @@ namespace irods::experimental::api::genquery
         return std::find(std::begin(_container), std::end(_container), _value) != std::end(_container);
     }
 
-    std::string sql(const Column& column)
+    auto setup_column_for_post_processing(const column& _column, const column_info& _column_info) -> std::tuple<bool, std::string_view>
     {
-        const auto iter = column_name_mappings.find(column.name);
-        
-        if (iter == std::end(column_name_mappings)) {
-            throw std::invalid_argument{fmt::format("unknown column: {}", column.name)};
+        auto is_special_column = true;
+        std::string_view table_alias_for_special_column;
+
+        auto add_r_data_main = false;
+        auto add_r_coll_main = false;
+        auto add_r_user_main = false;
+        auto add_r_resc_main = false;
+
+        // The columns that trigger these branches rely on special joins and therefore must use pre-defined
+        // table aliases.
+        if (_column.name.starts_with("META_D")) {
+            add_r_data_main = add_joins_for_meta_data = true;
+            table_alias_for_special_column = "mmd";
+        }
+        else if (_column.name.starts_with("META_C")) {
+            add_r_coll_main = add_joins_for_meta_coll = true;
+            table_alias_for_special_column = "mmc";
+        }
+        else if (_column.name.starts_with("META_R")) {
+            add_r_resc_main = add_joins_for_meta_resc = true;
+            table_alias_for_special_column = "mmr";
+        }
+        else if (_column.name.starts_with("META_U")) {
+            add_r_user_main = add_joins_for_meta_user = true;
+            table_alias_for_special_column = "mmu";
+        }
+        else if (_column.name.starts_with("DATA_ACCESS_")) {
+            // There are three tables which are secretly joined to satisfy columns that trigger this branch.
+            // The columns require special hard-coded table aliases to work properly. This is because the joins
+            // cannot be worked out using only the graph.
+            if (_column.name == "DATA_ACCESS_PERM_NAME") {
+                add_r_data_main = add_joins_for_data_perms = true;
+                table_alias_for_special_column = "pdt"; // The alias for R_TOKN_MAIN as it relates to data objects.
+            }
+            else if (_column.name == "DATA_ACCESS_USER_NAME") {
+                add_r_data_main = add_joins_for_data_perms = true;
+                table_alias_for_special_column = "pdu"; // The alias for R_USER_MAIN as it relates to data objects.
+            }
+            else {
+                add_r_data_main = add_joins_for_data_perms = true;
+                table_alias_for_special_column = "pdoa"; // The alias for R_OBJT_ACCESS as it relates to data objects.
+            }
+        }
+        else if (_column.name.starts_with("COLL_ACCESS_")) {
+            // There are three tables which are secretly joined to satisfy columns that trigger this branch.
+            // The columns require special hard-coded table aliases to work properly. This is because the joins
+            // cannot be worked out using only the graph.
+            if (_column.name == "COLL_ACCESS_PERM_NAME") {
+                add_r_coll_main = add_joins_for_coll_perms = true;
+                table_alias_for_special_column = "pct"; // The alias for R_TOKN_MAIN as it relates to collections.
+            }
+            else if (_column.name == "COLL_ACCESS_USER_NAME") {
+                add_r_coll_main = add_joins_for_coll_perms = true;
+                table_alias_for_special_column = "pcu"; // The alias for R_USER_MAIN as it relates to collections.
+            }
+            else {
+                add_r_coll_main = add_joins_for_coll_perms = true;
+                table_alias_for_special_column = "pcoa"; // The alias for R_OBJT_ACCESS as it relates to collections.
+            }
+        }
+        else if (_column.name == "DATA_RESC_HIER") {
+            add_r_resc_main = add_sql_for_data_resc_hier = true;
+            table_alias_for_special_column = "T";
+        }
+        else {
+            is_special_column = false;
         }
 
-        ast_column_ptrs.push_back(&column);
-
-        // TODO Handle DATA_RESC_HIER. It is a column that is derived from the relation
-        // between individual rows in R_RESC_MAIN.
-
-        auto is_special_column = true;
-        std::string_view sp_fmt_arg;
-
-        // clang-format off
-        if      (column.name.starts_with("META_D")) { add_joins_for_meta_data = true; sp_fmt_arg = "mmd"; }
-        else if (column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; sp_fmt_arg = "mmc"; }
-        else if (column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; sp_fmt_arg = "mmr"; }
-        else if (column.name.starts_with("META_U")) { add_joins_for_meta_user = true; sp_fmt_arg = "mmu"; }
-        else if (column.name == "DATA_RESC_HIER")   { add_sql_for_data_resc_hier = true; sp_fmt_arg = "T"; }
-        else                                        { is_special_column = false; }
-        // clang-format on
-
-        if (!contains(sql_tables, iter->second.table)) {
+        if (!contains(sql_tables, _column_info.table)) {
             // Special columns such as the general query metadata columns are handled separately
             // because they require multiple table joins. For this reason, we don't allow any of those
             // tables to be added to the table list.
             if (is_special_column) {
-                if (column.name.starts_with("META_D")) {
+                if (add_r_data_main) {
                     if (!contains(sql_tables, "R_DATA_MAIN")) {
                         sql_tables.emplace_back("R_DATA_MAIN");
                         table_aliases["R_DATA_MAIN"] = generate_table_alias();
                     }
                 }
-                else if (column.name.starts_with("META_C")) {
+                else if (add_r_coll_main) {
                     if (!contains(sql_tables, "R_COLL_MAIN")) {
                         sql_tables.emplace_back("R_COLL_MAIN");
                         table_aliases["R_COLL_MAIN"] = generate_table_alias();
                     }
                 }
-                else if (column.name.starts_with("META_R") || column.name == "DATA_RESC_HIER") {
+                else if (add_r_resc_main) {
                     if (!contains(sql_tables, "R_RESC_MAIN")) {
                         sql_tables.emplace_back("R_RESC_MAIN");
                         table_aliases["R_RESC_MAIN"] = generate_table_alias();
                     }
                 }
-                else if (column.name.starts_with("META_U")) {
+                else if (add_r_user_main) {
                     if (!contains(sql_tables, "R_USER_MAIN")) {
                         sql_tables.emplace_back("R_USER_MAIN");
                         table_aliases["R_USER_MAIN"] = generate_table_alias();
@@ -253,13 +494,29 @@ namespace irods::experimental::api::genquery
                 }
             }
             else {
-                sql_tables.push_back(iter->second.table);
-                table_aliases[std::string{iter->second.table}] = generate_table_alias();
+                sql_tables.push_back(_column_info.table);
+                table_aliases[std::string{_column_info.table}] = generate_table_alias();
             }
         }
 
+        return {is_special_column, table_alias_for_special_column};
+    } // setup_column_for_post_processing
+
+    std::string sql(const column& column)
+    {
+        const auto iter = column_name_mappings.find(column.name);
+        
+        if (iter == std::end(column_name_mappings)) {
+            throw std::invalid_argument{fmt::format("unknown column: {}", column.name)};
+        }
+
+        // Capture all column objects as some parts of the implementation need to access them in
+        // order to generate the proper SQL.
+        ast_column_ptrs.push_back(&column);
+
+        auto [is_special_column, table_alias_for_special_column] = setup_column_for_post_processing(column, iter->second);
         auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
-        const std::string_view alias = is_special_column ? sp_fmt_arg : table_aliases.at(std::string{iter->second.table});
+        const std::string_view alias = is_special_column ? table_alias_for_special_column : table_aliases.at(std::string{iter->second.table});
 
         if (column.type_name.empty()) {
             columns_ptr->push_back(fmt::format("{}.{}", alias, iter->second.name));
@@ -271,7 +528,7 @@ namespace irods::experimental::api::genquery
         return columns_ptr->back();
     }
 
-    std::string sql(const SelectFunction& select_function)
+    std::string sql(const select_function& select_function)
     {
         const auto iter = column_name_mappings.find(select_function.column.name);
         
@@ -279,78 +536,19 @@ namespace irods::experimental::api::genquery
             throw std::invalid_argument{fmt::format("unknown column: {}", select_function.column.name)};
         }
 
+        // Capture all column objects as some parts of the implementation need to access them in
+        // order to generate the proper SQL.
         ast_column_ptrs.push_back(&select_function.column);
 
-        // TODO Allow aggregate functions in where clause.
-        // For now, let's ignore that case until we have something more functional.
-        //
-        // TODO Aggregate functions are not allowed in the WHERE clause of an SQL statement!
         if (!in_select_clause) {
             throw std::invalid_argument{"aggregate functions not allowed in where clause"};
         }
 
-        auto is_special_column = true;
-        std::string_view sp_fmt_arg;
+        auto [is_special_column, table_alias_for_special_column] = setup_column_for_post_processing(select_function.column, iter->second);
 
-        // clang-format off
-        if      (select_function.column.name.starts_with("META_D")) { add_joins_for_meta_data = true; sp_fmt_arg = "mmd"; }
-        else if (select_function.column.name.starts_with("META_C")) { add_joins_for_meta_coll = true; sp_fmt_arg = "mmc"; }
-        else if (select_function.column.name.starts_with("META_R")) { add_joins_for_meta_resc = true; sp_fmt_arg = "mmr"; }
-        else if (select_function.column.name.starts_with("META_U")) { add_joins_for_meta_user = true; sp_fmt_arg = "mmu"; }
-        else if (select_function.column.name == "DATA_RESC_HIER")   { add_sql_for_data_resc_hier = true; sp_fmt_arg = "T"; }
-        else                                                        { is_special_column = false; }
-        // clang-format on
-
-        if (!contains(sql_tables, iter->second.table)) {
-            // Special columns such as the general query metadata columns are handled separately
-            // because they require multiple table joins. For this reason, we don't allow any of those
-            // tables to be added to the table list.
-            if (is_special_column) {
-                if (select_function.column.name.starts_with("META_D")) {
-                    if (!contains(sql_tables, "R_DATA_MAIN")) {
-                        sql_tables.emplace_back("R_DATA_MAIN");
-                        table_aliases["R_DATA_MAIN"] = generate_table_alias();
-                    }
-                }
-                else if (select_function.column.name.starts_with("META_C")) {
-                    if (!contains(sql_tables, "R_COLL_MAIN")) {
-                        sql_tables.emplace_back("R_COLL_MAIN");
-                        table_aliases["R_COLL_MAIN"] = generate_table_alias();
-                    }
-                }
-                else if (select_function.column.name.starts_with("META_R") || select_function.column.name == "DATA_RESC_HIER") {
-                    if (!contains(sql_tables, "R_RESC_MAIN")) {
-                        sql_tables.emplace_back("R_RESC_MAIN");
-                        table_aliases["R_RESC_MAIN"] = generate_table_alias();
-                    }
-                }
-                else if (select_function.column.name.starts_with("META_U")) {
-                    if (!contains(sql_tables, "R_USER_MAIN")) {
-                        sql_tables.emplace_back("R_USER_MAIN");
-                        table_aliases["R_USER_MAIN"] = generate_table_alias();
-                    }
-                }
-            }
-            else {
-                sql_tables.push_back(iter->second.table);
-                table_aliases[std::string{iter->second.table}] = generate_table_alias();
-            }
-        }
-
-#if 0
-        auto& column = iter->second;
-        columns_for_select_clause.push_back(fmt::format("{}({}.{})", select_function.name, column.table, column.name));
-
-        if (is_special_column) {
-            return fmt::format("{}({{}}.{})", select_function.name, column.name);
-        }
-
-        return fmt::format("{}({}.{})", select_function.name, table_aliases.at(std::string{column.table}), column.name);
-#else
-        // TODO Aggregate functions are not allowed in the WHERE clause of an SQL statement!
-        //auto* columns_ptr = in_select_clause ? &columns_for_select_clause : &columns_for_where_clause;
+        // Aggregate functions are not allowed in the WHERE clause of an SQL statement!
         auto* columns_ptr = &columns_for_select_clause;
-        const std::string_view alias = is_special_column ? sp_fmt_arg : table_aliases.at(std::string{iter->second.table});
+        const std::string_view alias = is_special_column ? table_alias_for_special_column : table_aliases.at(std::string{iter->second.table});
 
         if (select_function.column.type_name.empty()) {
             columns_ptr->push_back(fmt::format("{}({}.{})", select_function.name, alias, iter->second.name));
@@ -360,10 +558,9 @@ namespace irods::experimental::api::genquery
         }
 
         return columns_ptr->back();
-#endif
     }
 
-    std::string sql(const Selections& selections)
+    std::string sql(const selections& selections)
     {
         // TODO Replace with at_scope_exit.
         struct restore_value {
@@ -391,55 +588,55 @@ namespace irods::experimental::api::genquery
         return "";
     }
 
-    std::string sql(const ConditionOperator_Not& op_not)
+    std::string sql(const condition_operator_not& op_not)
     {
         return fmt::format(" not{}", boost::apply_visitor(sql_visitor(), op_not.expression));
     }
 
-    std::string sql(const ConditionNotEqual& not_equal)
+    std::string sql(const condition_not_equal& not_equal)
     {
         values.push_back(not_equal.string_literal);
         return " != ?";
     }
 
-    std::string sql(const ConditionEqual& equal)
+    std::string sql(const condition_equal& equal)
     {
         values.push_back(equal.string_literal);
         return " = ?";
     }
 
-    std::string sql(const ConditionLessThan& less_than)
+    std::string sql(const condition_less_than& less_than)
     {
         values.push_back(less_than.string_literal);
         return " < ?";
     }
 
-    std::string sql(const ConditionLessThanOrEqualTo& less_than_or_equal_to)
+    std::string sql(const condition_less_than_or_equal_to& less_than_or_equal_to)
     {
         values.push_back(less_than_or_equal_to.string_literal);
         return " <= ?";
     }
 
-    std::string sql(const ConditionGreaterThan& greater_than)
+    std::string sql(const condition_greater_than& greater_than)
     {
         values.push_back(greater_than.string_literal);
         return " > ?";
     }
 
-    std::string sql(const ConditionGreaterThanOrEqualTo& greater_than_or_equal_to)
+    std::string sql(const condition_greater_than_or_equal_to& greater_than_or_equal_to)
     {
         values.push_back(greater_than_or_equal_to.string_literal);
         return " >= ?";
     }
 
-    std::string sql(const ConditionBetween& between)
+    std::string sql(const condition_between& between)
     {
         values.push_back(between.low);
         values.push_back(between.high);
         return " between ? and ?";
     }
 
-    std::string sql(const ConditionIn& in)
+    std::string sql(const condition_in& in)
     {
         values.insert(std::end(values),
                       std::begin(in.list_of_string_literals),
@@ -459,28 +656,28 @@ namespace irods::experimental::api::genquery
         return fmt::format(" in ({})", fmt::join(first, last, ", "));
     }
 
-    std::string sql(const ConditionLike& like)
+    std::string sql(const condition_like& like)
     {
         values.push_back(like.string_literal);
         return " like ?";
     }
 
-    std::string sql(const ConditionIsNull&)
+    std::string sql(const condition_is_null&)
     {
         return " is null";
     }
 
-    std::string sql(const ConditionIsNotNull&)
+    std::string sql(const condition_is_not_null&)
     {
         return " is not null";
     }
 
-    std::string sql(const Condition& condition)
+    std::string sql(const condition& condition)
     {
         return fmt::format("{}{}", sql(condition.column), boost::apply_visitor(sql_visitor(), condition.expression));
     }
 
-    std::string sql(const Conditions& conditions)
+    std::string sql(const conditions& conditions)
     {
         std::string ret;
 
@@ -511,10 +708,12 @@ namespace irods::experimental::api::genquery
         return fmt::format("({})", sql(condition.conditions));
     }
 
-    std::string sql(const Select& select, const options& _opts)
+    std::string sql(const select& select, const options& _opts)
     {
         try {
             fmt::print("### PHASE 1: Gather\n\n");
+
+            table_alias_id = 0; // Reset so we never exhaust the range.
 
             // Extract tables and columns from general query statement.
             sql(select.selections);
@@ -525,7 +724,7 @@ namespace irods::experimental::api::genquery
             fmt::print("CONDITIONS = {}\n\n", conds);
 
             if (sql_tables.empty()) {
-                return "EMPTY RESULTSET";
+                return "";
             }
 
             {
@@ -534,16 +733,7 @@ namespace irods::experimental::api::genquery
                 ast_column_ptrs.erase(std::unique(std::begin(ast_column_ptrs), end), end);
             }
 
-            // TODO Algorithm
-            // 1. Gather all tables from columns.
-            // 2. Assign table aliases to tables and columns.
-            // 3. Resolve joins for each table.
-            //
-            // TODO Optimizations
-            // - Cache the SQL for multiple runs of the same GenQuery string.
-
-            // TODO Handle special case where the user only queries columns from a
-            // single table (e.g. DATA_NAME, DATA_ID, DATA_REPL_NUM).
+            // TODO Optimizations - Cache the SQL for multiple runs of the same GenQuery string.
 
             std::for_each(std::begin(sql_tables), std::end(sql_tables), [](auto&& _t) {
                 std::string_view alias = "";
@@ -590,33 +780,8 @@ namespace irods::experimental::api::genquery
             }
 
             for (auto [iter, last] = boost::edges(graph); iter != last; ++iter) {
-                graph[*iter] = table_joins[table_edges.size() - std::distance(iter, last)];
+                graph[*iter] = table_joins[table_edges.size() - std::distance(iter, last)]; // TODO
             }
-
-            constexpr const char* data_resc_hier_with_clause =
-                "with recursive T as ("
-                    "select "
-                        "resc_id, "
-                        "resc_name hier, "
-                        "case "
-                            "when resc_parent = '' then 0 "
-                            "else cast(resc_parent as bigint) " // TODO Is bigint supported in all databases?
-                        "end parent_id "
-                    "from "
-                        "r_resc_main "
-                    "where "
-                        "resc_id > 0 "
-                    "union all "
-                    "select "
-                        "T.resc_id, "
-                        "cast((U.resc_name || ';' || T.hier) as varchar(250)), "
-                        "case "
-                            "when U.resc_parent = '' then 0 "
-                            "else cast(U.resc_parent as bigint) "
-                        "end parent_id "
-                    "from T "
-                    "inner join r_resc_main U on U.resc_id = T.parent_id"
-                ") ";
 
             // Generate the SELECT clause.
             //
@@ -636,56 +801,7 @@ namespace irods::experimental::api::genquery
             fmt::print("SELECT CLAUSE => {}\n", select_clause);
             fmt::print("\n");
 
-            const auto get_table_join = [&graph](const auto& _t1, const auto& _t2) -> std::string {
-                const auto t1_idx = table_name_index(_t1);
-                const auto t2_idx = table_name_index(_t2);
-                const auto [edge, exists] = boost::edge(t1_idx, t2_idx, graph);
-
-                if (!exists) {
-                    return "";
-                }
-
-                const auto t1_alias = table_aliases.at(std::string{_t1});
-                const auto t2_alias = table_aliases.at(std::string{_t2});
-                const auto sql = fmt::format("inner join {} {} on {}", _t2, t2_alias, graph[edge].table_join_fmt);
-
-                return fmt::format(fmt::runtime(sql), t1_alias, t2_alias);
-            };
-
-            // The order of inner-joins matters when they interleave.
-            //
-            // IDEA?
-            // 1. Find a inner joins that connect to the table in the FROM clause.
-            // 2. Find next joins based on what criteria?
-            //
-            // THOUGHTS:
-            // Should there be a join table order?
-            // Some tables don't care about order while others do.
-            std::vector<std::string> inner_joins;
-            inner_joins.reserve(sql_tables.size() - 1);
-
-            std::vector<std::string> remaining{std::begin(sql_tables) + 1, std::end(sql_tables)};
-            fmt::print("remaining = [{}]\n", fmt::join(remaining, ", "));
-
-            std::vector<std::string> processed;
-            processed.reserve(sql_tables.size());
-            processed.push_back(std::string{sql_tables.front()});
-            fmt::print("processed = [{}]\n", fmt::join(processed, ", "));
-
-            for (decltype(sql_tables.size()) i = 0; i < sql_tables.size() - 1; ++i) {
-                const auto& last = processed.back();
-
-                for (auto iter = std::begin(remaining); iter != std::end(remaining);) {
-                    if (auto j = get_table_join(last, *iter); !j.empty()) {
-                        inner_joins.push_back(std::move(j));
-                        processed.emplace_back(*iter);
-                        iter = remaining.erase(iter);
-                    }
-                    else {
-                        ++iter;
-                    }
-                }
-            }
+            const auto inner_joins = generate_inner_joins(graph, sql_tables, table_aliases);
 
             std::for_each(std::begin(inner_joins), std::end(inner_joins), [](auto&& _j) {
                 fmt::print("INNER JOIN => {}\n", _j);
@@ -707,30 +823,32 @@ namespace irods::experimental::api::genquery
             // Q. What happens if a user attempts to query data objects, collections, and tickets in the same query?
             // Q. Should these questions be handled by specific queries instead?
 
-            // TODO Permission checking.
-            if (!_opts.admin_mode) {
-                /*
-                    select d.*
-                    from R_DATA_MAIN d
-                    inner join R_COLL_MAIN c on doa.object_id = d.data_id
-                    inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
-                    inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
-                    inner join R_USER_MAIN du on du.user_id = doa.user_id
-                    inner join R_USER_MAIN cu on cu.user_id = coa.user_id
-                    where doa.access_type_id >= ? and
-                          coa.access_type_id >= ?
-                 */
-                if (const auto iter = table_aliases.find("R_DATA_MAIN"); iter != std::end(table_aliases)) {
-                    sql += fmt::format(" inner join R_OBJT_ACCESS pdoa on {}.data_id = pdoa.object_id"
-                                       " inner join R_USER_MAIN pdu on pdoa.user_id = pdu.user_id",
-                                       iter->second);
-                }
+            // Permission checking.
+            // Always include the joins if the query involves columns related to data objects and/or collections.
+            // This is required due to how columns in R_OBJT_ACCESS and other tables are handled.
+            /*
+                select d.*
+                from R_DATA_MAIN d
+                inner join R_COLL_MAIN c on doa.object_id = d.data_id
+                inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
+                inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
+                inner join R_USER_MAIN du on du.user_id = doa.user_id
+                inner join R_USER_MAIN cu on cu.user_id = coa.user_id
+                where doa.access_type_id >= ? and
+                      coa.access_type_id >= ?
+             */
+            if (const auto iter = table_aliases.find("R_DATA_MAIN"); iter != std::end(table_aliases)) {
+                sql += fmt::format(" inner join R_OBJT_ACCESS pdoa on {}.data_id = pdoa.object_id"
+                                   " inner join R_TOKN_MAIN pdt on pdoa.access_type_id = pdt.token_id"
+                                   " inner join R_USER_MAIN pdu on pdoa.user_id = pdu.user_id",
+                                   iter->second);
+            }
 
-                if (const auto iter = table_aliases.find("R_COLL_MAIN"); iter != std::end(table_aliases)) {
-                    sql += fmt::format(" inner join R_OBJT_ACCESS pcoa on {}.coll_id = pcoa.object_id"
-                                       " inner join R_USER_MAIN pcu on pcoa.user_id = pcu.user_id",
-                                       iter->second);
-                }
+            if (const auto iter = table_aliases.find("R_COLL_MAIN"); iter != std::end(table_aliases)) {
+                sql += fmt::format(" inner join R_OBJT_ACCESS pcoa on {}.coll_id = pcoa.object_id"
+                                   " inner join R_TOKN_MAIN pct on pcoa.access_type_id = pct.token_id"
+                                   " inner join R_USER_MAIN pcu on pcoa.user_id = pcu.user_id",
+                                   iter->second);
             }
 
             // TODO Handle situations where columns in the R_OBJT_ACCESS table are requested.
@@ -755,45 +873,11 @@ namespace irods::experimental::api::genquery
             // change. One way around this is to change the integer value to 0 or the lowest permission integer
             // when an admin runs the query. That way, the behavior remains the same for all users.
 
-            // TODO The following SQL statements can be stored as a format string for reuse. Placeholders can
-            // be given names so that we can replace markers that match the same value.
-            //
-            // TODO Remember: Table aliases for R_OBJT_METAMAP and R_META_MAIN can be generated without needing
-            // to store them in the table_aliases container by simply concatenating the table alias of META_*_ATTR_*
-            // with a fixed string. Doing this will avoid alias collisions and allow the SQL-join strings to be
-            // captured in a hard-coded list.
-            if (add_joins_for_meta_data) {
-                // select distinct d.data_id, c.coll_name, d.data_name, mmd.meta_attr_name, mmc.meta_attr_name
-                // from R_COLL_MAIN c                                                                                
-                // inner join R_DATA_MAIN d on c.coll_id = d.coll_id                                                 
-                // left join R_OBJT_METAMAP ommd on d.data_id = ommd.object_id                                       
-                // left join R_OBJT_METAMAP ommc on c.coll_id = ommc.object_id                                       
-                // left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id                                           
-                // left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id                                           
-                // where mmd.meta_attr_name = 'job' or                                                               
-                //       mmc.meta_attr_name = 'nope';                                                                
-                sql += fmt::format(" left join R_OBJT_METAMAP ommd on {}.data_id = ommd.object_id "
-                                   "left join R_META_MAIN mmd on ommd.meta_id = mmd.meta_id",
-                                   table_aliases.at("R_DATA_MAIN"));
-            }
-
-            if (add_joins_for_meta_coll) {
-                sql += fmt::format(" left join R_OBJT_METAMAP ommc on {}.coll_id = ommc.object_id "
-                                   "left join R_META_MAIN mmc on ommc.meta_id = mmc.meta_id",
-                                   table_aliases.at("R_COLL_MAIN"));
-            }
-
-            if (add_joins_for_meta_resc) {
-                sql += fmt::format(" left join R_OBJT_METAMAP ommr on {}.resc_id = ommr.object_id "
-                                   "left join R_META_MAIN mmr on ommr.meta_id = mmr.meta_id",
-                                   table_aliases.at("R_RESC_MAIN"));
-            }
-
-            if (add_joins_for_meta_user) {
-                sql += fmt::format(" left join R_OBJT_METAMAP ommu on {}.user_id = ommu.object_id "
-                                   "left join R_META_MAIN mmu on ommu.meta_id = mmu.meta_id",
-                                   table_aliases.at("R_USER_MAIN"));
-            }
+            sql += generate_joins_for_metadata_columns(table_aliases,
+                                                       add_joins_for_meta_data,
+                                                       add_joins_for_meta_coll,
+                                                       add_joins_for_meta_resc,
+                                                       add_joins_for_meta_user);
 
             if (add_sql_for_data_resc_hier) {
                 sql += fmt::format(" inner join T on T.resc_id = {}.resc_id", table_aliases.at("R_RESC_MAIN"));
@@ -802,8 +886,37 @@ namespace irods::experimental::api::genquery
             if (!conds.empty()) {
                 sql += fmt::format(" where {}", conds);
 
+                const auto min_perm_level = _opts.admin_mode ? 1000 : 1050;
+
                 // TODO Permission checking.
-                if (!_opts.admin_mode) {
+                if (_opts.admin_mode) {
+                    /*
+                        select d.*
+                        from R_DATA_MAIN d
+                        inner join R_COLL_MAIN c on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
+                        inner join R_USER_MAIN du on du.user_id = doa.user_id
+                        inner join R_USER_MAIN cu on cu.user_id = coa.user_id
+                        where doa.access_type_id >= ? and du.user_name = ? and
+                              coa.access_type_id >= ? and cu.user_name = ?
+                     */
+                    const auto d_iter = table_aliases.find("R_DATA_MAIN");
+                    const auto c_iter = table_aliases.find("R_COLL_MAIN");
+                    const auto end = std::end(table_aliases);
+
+                    if (d_iter != end && c_iter != end) {
+                        sql += fmt::format(" and pdoa.access_type_id >= {perm} and pcoa.access_type_id >= {perm}",
+                                           fmt::arg("perm", min_perm_level));
+                    }
+                    else if (d_iter != end) {
+                        sql += fmt::format(" and pdoa.access_type_id >= {}", min_perm_level);
+                    }
+                    else if (c_iter != end) {
+                        sql += fmt::format(" and pcoa.access_type_id >= {}", min_perm_level);
+                    }
+                }
+                else {
                     /*
                         select d.*
                         from R_DATA_MAIN d
@@ -821,23 +934,26 @@ namespace irods::experimental::api::genquery
 
                     if (d_iter != end && c_iter != end) {
                         sql += fmt::format(" and pdu.user_name = ? and pcu.user_name = ? and"
-                                           " pdoa.access_type_id >= 1050 and pcoa.access_type_id >= 1050");
+                                           " pdoa.access_type_id >= {perm} and pcoa.access_type_id >= {perm}",
+                                           fmt::arg("perm", min_perm_level));
                         values.push_back(std::string{_opts.username});
                         values.push_back(std::string{_opts.username});
                     }
                     else if (d_iter != end) {
-                        sql += fmt::format(" and pdu.user_name = ? and pdoa.access_type_id >= 1050");
+                        sql += fmt::format(" and pdu.user_name = ? and pdoa.access_type_id >= {}", min_perm_level);
                         values.push_back(std::string{_opts.username});
                     }
                     else if (c_iter != end) {
-                        sql += fmt::format(" and pcu.user_name = ? and pcoa.access_type_id >= 1050");
+                        sql += fmt::format(" and pcu.user_name = ? and pcoa.access_type_id >= {}", min_perm_level);
                         values.push_back(std::string{_opts.username});
                     }
                 }
             }
             else {
+                const auto min_perm_level = _opts.admin_mode ? 1000 : 1050;
+
                 // TODO Permission checking.
-                if (!_opts.admin_mode) {
+                if (_opts.admin_mode) {
                     /*
                         select d.*
                         from R_DATA_MAIN d
@@ -854,77 +970,51 @@ namespace irods::experimental::api::genquery
                     const auto end = std::end(table_aliases);
 
                     if (d_iter != end && c_iter != end) {
-                        sql += fmt::format(" where pdu.user_name = ? and pcu.user_name = ? and pdoa.access_type_id >= 1050 and pcoa.access_type_id >= 1050");
+                        sql += fmt::format(" where pdoa.access_type_id >= {perm} and pcoa.access_type_id >= {perm}",
+                                           fmt::arg("perm", min_perm_level));
+                    }
+                    else if (d_iter != end) {
+                        sql += fmt::format(" where pdoa.access_type_id >= {}", min_perm_level);
+                    }
+                    else if (c_iter != end) {
+                        sql += fmt::format(" where pcoa.access_type_id >= {}", min_perm_level);
+                    }
+                }
+                else {
+                    /*
+                        select d.*
+                        from R_DATA_MAIN d
+                        inner join R_COLL_MAIN c on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS doa on doa.object_id = d.data_id
+                        inner join R_OBJT_ACCESS coa on coa.object_id = c.coll_id
+                        inner join R_USER_MAIN du on du.user_id = doa.user_id
+                        inner join R_USER_MAIN cu on cu.user_id = coa.user_id
+                        where doa.access_type_id >= ? and du.user_name = ? and
+                              coa.access_type_id >= ? and cu.user_name = ?
+                     */
+                    const auto d_iter = table_aliases.find("R_DATA_MAIN");
+                    const auto c_iter = table_aliases.find("R_COLL_MAIN");
+                    const auto end = std::end(table_aliases);
+
+                    if (d_iter != end && c_iter != end) {
+                        sql += fmt::format(" where pdu.user_name = ? and pcu.user_name = ?"
+                                           " and pdoa.access_type_id >= {perm} and pcoa.access_type_id >= {perm}",
+                                           fmt::arg("perm", min_perm_level));
                         values.push_back(std::string{_opts.username});
                         values.push_back(std::string{_opts.username});
                     }
                     else if (d_iter != end) {
-                        sql += fmt::format(" where pdu.user_name = ? and pdoa.access_type_id >= 1050");
+                        sql += fmt::format(" where pdu.user_name = ? and pdoa.access_type_id >= {}", min_perm_level);
                         values.push_back(std::string{_opts.username});
                     }
                     else if (c_iter != end) {
-                        sql += fmt::format(" where pcu.user_name = ? and pcoa.access_type_id >= 1050");
+                        sql += fmt::format(" where pcu.user_name = ? and pcoa.access_type_id >= {}", min_perm_level);
                         values.push_back(std::string{_opts.username});
                     }
                 }
             }
 
-            if (!select.order_by.sort_expressions.empty()) {
-                const auto& sort_expressions = select.order_by.sort_expressions;
-
-                std::vector<std::string> sort_expr;
-                sort_expr.reserve(sort_expressions.size());
-
-                for (const auto& se : sort_expressions) {
-                    const auto iter = column_name_mappings.find(se.column);
-
-                    if (iter == std::end(column_name_mappings)) {
-                        throw std::invalid_argument{fmt::format("unknown column in order-by clause: {}", se.column)};
-                    }
-
-                    auto is_special_column = true;
-                    std::string_view alias;
-
-                    // clang-format off
-                    if      (se.column.starts_with("META_D")) { alias = "mmd"; }
-                    else if (se.column.starts_with("META_C")) { alias = "mmc"; }
-                    else if (se.column.starts_with("META_R")) { alias = "mmr"; }
-                    else if (se.column.starts_with("META_U")) { alias = "mmu"; }
-                    else if (se.column == "DATA_RESC_HIER")   { alias = "T"; }
-                    else                                      { is_special_column = false; }
-                    // clang-format on
-
-                    if (!is_special_column) {
-                        alias = table_aliases.at(std::string{iter->second.table});
-                    }
-
-                    const auto ast_iter = std::find_if(std::begin(ast_column_ptrs), std::end(ast_column_ptrs), [&se](const Column* _p) {
-                        return _p->name == se.column;
-                    });
-
-                    if (std::end(ast_column_ptrs) == ast_iter) {
-                        throw std::invalid_argument{"cannot generate SQL from General Query."};
-                    }
-
-                    if ((*ast_iter)->type_name.empty()) {
-                        sort_expr.push_back(fmt::format("{}.{} {}",
-                                                        alias,
-                                                        iter->second.name,
-                                                        se.ascending_order ? "asc" : "desc"));
-                    }
-                    else {
-                        sort_expr.push_back(fmt::format("cast({}.{} as {}) {}",
-                                                        alias,
-                                                        iter->second.name,
-                                                        (*ast_iter)->type_name,
-                                                        se.ascending_order ? "asc" : "desc"));
-                    }
-                }
-
-                // All columns in the order by clause must exist in the list of columns to project.
-                // TODO Replace all columns with real table names.
-                sql += fmt::format(" order by {}", fmt::join(sort_expr, ", "));
-            }
+            sql += generate_order_by_clause(select.order_by, table_aliases, column_name_mappings, ast_column_ptrs);
 
             if (!select.range.offset.empty()) {
                 sql += fmt::format(" offset {}", select.range.offset);

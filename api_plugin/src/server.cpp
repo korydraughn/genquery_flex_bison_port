@@ -107,20 +107,14 @@ namespace
                     const auto n_cols = row.columns();
 
                     while (row.next()) {
-                        // TODO The parser needs to report which columns are being projected.
-                        // Can this information be retrieved from nanodbc?
-                        // What happens if we can do that, but then switch from nanodbc to something else?
-                        // The right answer is to make the parser return the columns which are to be projected. No dependencies on 3rd-party libs.
                         for (std::remove_cvref_t<decltype(n_cols)> i = 0; i < n_cols; ++i) {
-                            json_row.push_back(row.get<std::string>(i));
+                            json_row.push_back(row.get<std::string>(i, ""));
                         }
 
                         json_array.push_back(json_row);
                         json_row.clear();
                     }
 
-                    // TODO Return the resultset as JSON?
-                    // How expensive is it to serialize into JSON? Don't overthink it man. Just make it work first.
                     *_resp = strdup(json_array.dump().c_str());
                 }
                 catch (const nanodbc::database_error& e) {

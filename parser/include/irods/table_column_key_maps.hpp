@@ -77,8 +77,9 @@ namespace irods::experimental::api::genquery
         {"DATA_MODIFY_TIME",    {"R_DATA_MAIN", "modify_ts"}},
         {"DATA_MODE",           {"R_DATA_MAIN", "data_mode"}},
         {"DATA_RESC_ID",        {"R_DATA_MAIN", "resc_id"}},
-        {"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}},
-        {"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}},
+
+        //{"DATA_USER_NAME",      {"R_USER_MAIN", "user_name"}}, // TODO Special? Derived from R_USER_MAIN and R_OBJT_ACCESS.
+        //{"DATA_USER_ZONE",      {"R_USER_MAIN", "zone_name"}}, // TODO Special? Derived from R_USER_MAIN and R_OBJT_ACCESS.
 
         // This is a special column that is derived via SQL.
         // It has no direct mapping. It is generated using a recursive CTE.
@@ -98,8 +99,9 @@ namespace irods::experimental::api::genquery
         {"COLL_TYPE",        {"R_COLL_MAIN", "coll_type"}},
         {"COLL_INFO1",       {"R_COLL_MAIN", "coll_info1"}},
         {"COLL_INFO2",       {"R_COLL_MAIN", "coll_info2"}},
-        {"COLL_USER_NAME",   {"R_USER_MAIN", "user_name"}},
-        {"COLL_USER_ZONE",   {"R_USER_MAIN", "zone_name"}},
+
+        //{"COLL_USER_NAME",   {"R_USER_MAIN", "user_name"}}, // TODO Special? Derived from R_USER_MAIN and R_OBJT_ACCESS.
+        //{"COLL_USER_ZONE",   {"R_USER_MAIN", "zone_name"}}, // TODO Special? Derived from R_USER_MAIN and R_OBJT_ACCESS.
 
         {"META_DATA_ATTR_NAME",   {"R_META_MAIN", "meta_attr_name"}},
         {"META_DATA_ATTR_VALUE",  {"R_META_MAIN", "meta_attr_value"}},
@@ -145,43 +147,47 @@ namespace irods::experimental::api::genquery
         {"DELAY_RULE_LAST_EXE_TIME",      {"R_RULE_EXEC", "last_exe_time"}},
         {"DELAY_RULE_STATUS",             {"R_RULE_EXEC", "exe_status"}},
 
-        {"TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
-        {"TOKEN_ID",        {"R_TOKN_MAIN", "token_id"}},
-        {"TOKEN_NAME",      {"R_TOKN_MAIN", "token_name"}},
-        {"TOKEN_VALUE",     {"R_TOKN_MAIN", "token_value"}},
-        {"TOKEN_VALUE2",    {"R_TOKN_MAIN", "token_value2"}},
-        {"TOKEN_VALUE3",    {"R_TOKN_MAIN", "token_value3"}},
-        {"TOKEN_COMMENT",   {"R_TOKN_MAIN", "r_comment"}},
+        //{"TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}},
+        //{"TOKEN_ID",        {"R_TOKN_MAIN", "token_id"}},
+        //{"TOKEN_NAME",      {"R_TOKN_MAIN", "token_name"}},
+        //{"TOKEN_VALUE",     {"R_TOKN_MAIN", "token_value"}},
+        //{"TOKEN_VALUE2",    {"R_TOKN_MAIN", "token_value2"}},
+        //{"TOKEN_VALUE3",    {"R_TOKN_MAIN", "token_value3"}},
+        //{"TOKEN_COMMENT",   {"R_TOKN_MAIN", "r_comment"}},
 
         // TODO Should quota information be handled by a set of specific queries?
         // Why should GenQuery handle these?
         // Perhaps we should offload special columns to specific queries? This keeps the
         // parser's implementation simpler.
-        {"QUOTA_USER_ID",           {"R_QUOTA_MAIN", "user_id"}},
-        {"QUOTA_RESC_ID",           {"R_QUOTA_MAIN", "resc_id"}},
-        {"QUOTA_LIMIT",             {"R_QUOTA_MAIN", "quota_limit"}},
-        {"QUOTA_OVER",              {"R_QUOTA_MAIN", "quota_over"}},
-        {"QUOTA_MODIFY_TIME",       {"R_QUOTA_MAIN", "modify_ts"}},
-        {"QUOTA_USAGE_USER_ID",     {"R_QUOTA_USAGE", "user_id"}},
-        {"QUOTA_USAGE_RESC_ID",     {"R_QUOTA_USAGE", "resc_id"}},
-        {"QUOTA_USAGE",             {"R_QUOTA_USAGE", "quota_usage"}},
-        {"QUOTA_USAGE_MODIFY_TIME", {"R_QUOTA_USAGE", "modify_ts"}},
-        {"QUOTA_USER_NAME",         {"R_USER_MAIN", "user_name"}}, // TODO special?
-        {"QUOTA_USER_TYPE",         {"R_USER_MAIN", "user_type_name"}}, // TODO special?
-        {"QUOTA_USER_ZONE",         {"R_USER_MAIN", "zone_name"}}, // TODO special?
-        {"QUOTA_RESC_NAME",         {"R_RESC_MAIN", "resc_name"}}, // TODO special?
+        //{"QUOTA_USER_ID",           {"R_QUOTA_MAIN", "user_id"}},
+        //{"QUOTA_RESC_ID",           {"R_QUOTA_MAIN", "resc_id"}},
+        //{"QUOTA_LIMIT",             {"R_QUOTA_MAIN", "quota_limit"}},
+        //{"QUOTA_OVER",              {"R_QUOTA_MAIN", "quota_over"}},
+        //{"QUOTA_MODIFY_TIME",       {"R_QUOTA_MAIN", "modify_ts"}},
+        //{"QUOTA_USAGE_USER_ID",     {"R_QUOTA_USAGE", "user_id"}},
+        //{"QUOTA_USAGE_RESC_ID",     {"R_QUOTA_USAGE", "resc_id"}},
+        //{"QUOTA_USAGE",             {"R_QUOTA_USAGE", "quota_usage"}},
+        //{"QUOTA_USAGE_MODIFY_TIME", {"R_QUOTA_USAGE", "modify_ts"}},
+        //{"QUOTA_USER_NAME",         {"R_USER_MAIN", "user_name"}}, // TODO special?
+        //{"QUOTA_USER_TYPE",         {"R_USER_MAIN", "user_type_name"}}, // TODO special?
+        //{"QUOTA_USER_ZONE",         {"R_USER_MAIN", "zone_name"}}, // TODO special?
+        //{"QUOTA_RESC_NAME",         {"R_RESC_MAIN", "resc_name"}}, // TODO special?
 
-        {"DATA_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"DATA_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"DATA_ACCESS_DATA_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"DATA_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}}, // TODO special?
-        {"DATA_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}}, // TODO special?
+        {"DATA_ACCESS_PERM_ID",   {"R_OBJT_ACCESS", "access_type_id"}},
+        {"DATA_ACCESS_PERM_NAME", {"R_TOKN_MAIN", "token_name"}},
+        {"DATA_ACCESS_USER_ID",   {"R_OBJT_ACCESS", "user_id"}},
+        {"DATA_ACCESS_USER_NAME", {"R_USER_MAIN", "user_name"}},
+        //{"DATA_ACCESS_DATA_ID",  {"R_OBJT_ACCESS", "object_id"}},
+        //{"DATA_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}}, // TODO special?
+        //{"DATA_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}}, // TODO special?
 
-        {"COLL_ACCESS_TYPE",     {"R_OBJT_ACCESS", "access_type_id"}},
-        {"COLL_ACCESS_USER_ID",  {"R_OBJT_ACCESS", "user_id"}},
-        {"COLL_ACCESS_COLL_ID",  {"R_OBJT_ACCESS", "object_id"}},
-        {"COLL_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}}, // TODO special?
-        {"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}}, // TODO special?
+        {"COLL_ACCESS_PERM_ID",   {"R_OBJT_ACCESS", "access_type_id"}},
+        {"COLL_ACCESS_PERM_NAME", {"R_TOKN_MAIN", "token_name"}},
+        {"COLL_ACCESS_USER_ID",   {"R_OBJT_ACCESS", "user_id"}},
+        {"COLL_ACCESS_USER_NAME", {"R_USER_NAME", "user_name"}},
+        //{"COLL_ACCESS_COLL_ID",  {"R_OBJT_ACCESS", "object_id"}},
+        //{"COLL_ACCESS_NAME",     {"R_TOKN_MAIN", "token_name"}}, // TODO special?
+        //{"COLL_TOKEN_NAMESPACE", {"R_TOKN_MAIN", "token_namespace"}}, // TODO special?
 
         {"TICKET_ID",                      {"R_TICKET_MAIN", "ticket_id"}},
         {"TICKET_STRING",                  {"R_TICKET_MAIN", "ticket_string"}},
@@ -198,6 +204,7 @@ namespace irods::experimental::api::genquery
         {"TICKET_EXPIRY_TIME",             {"R_TICKET_MAIN", "ticket_expiry_ts"}},
         {"TICKET_CREATE_TIME",             {"R_TICKET_MAIN", "create_time"}},
         {"TICKET_MODIFY_TIME",             {"R_TICKET_MAIN", "modify_time"}},
+        //{"TICKET_LOGICAL_PATH",             {"R_TICKET_MAIN", "modify_time"}},
 
         {"TICKET_ALLOWED_HOST",            {"R_TICKET_ALLOWED_HOSTS", "host"}},
         {"TICKET_ALLOWED_HOST_TICKET_ID",  {"R_TICKET_ALLOWED_HOSTS", "ticket_id"}},
@@ -208,11 +215,11 @@ namespace irods::experimental::api::genquery
         {"TICKET_ALLOWED_GROUP_NAME",      {"R_TICKET_ALLOWED_GROUPS", "group_name"}},
         {"TICKET_ALLOWED_GROUP_TICKET_ID", {"R_TICKET_ALLOWED_GROUPS", "ticket_id"}},
 
-        {"TICKET_DATA_NAME",               {"R_DATA_MAIN", "data_name"}}, // TODO special?
-        {"TICKET_COLL_NAME",               {"R_COLL_MAIN", "coll_name"}}, // TODO special?
-        {"TICKET_OWNER_NAME",              {"R_USER_MAIN", "user_name"}}, // TODO special?
-        {"TICKET_OWNER_ZONE",              {"R_USER_MAIN", "zone_name"}}, // TODO special?
-        {"TICKET_DATA_COLL_NAME",          {"R_COLL_MAIN", "coll_name"}} // Includes join between R_DATA_MAIN and R_COLL_MAIN. What is this?
+        //{"TICKET_DATA_NAME",               {"R_DATA_MAIN", "data_name"}}, // TODO special?
+        //{"TICKET_COLL_NAME",               {"R_COLL_MAIN", "coll_name"}}, // TODO special?
+        //{"TICKET_OWNER_NAME",              {"R_USER_MAIN", "user_name"}}, // TODO special?
+        //{"TICKET_OWNER_ZONE",              {"R_USER_MAIN", "zone_name"}}, // TODO special?
+        //{"TICKET_DATA_COLL_NAME",          {"R_COLL_MAIN", "coll_name"}} // Includes join between R_DATA_MAIN and R_COLL_MAIN. What is this?
     }; // column_name_mappings
 } // namespace irods::experemental::api::genquery
 

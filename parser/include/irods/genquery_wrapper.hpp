@@ -15,9 +15,9 @@ namespace irods::experimental::api::genquery
     public:
         explicit wrapper(std::istream* _is_ptr);
 
-        static auto parse(std::istream& _is) -> Select;
-        static auto parse(const char* _s) -> Select;
-        static auto parse(const std::string& _s) -> Select;
+        static auto parse(std::istream& _is) -> select;
+        static auto parse(const char* _s) -> select;
+        static auto parse(const std::string& _s) -> select;
 
         friend class parser;
         friend class scanner;
@@ -28,7 +28,7 @@ namespace irods::experimental::api::genquery
 
         scanner scanner_;
         parser parser_;
-        Select select_;
+        select select_;
         std::uint64_t location_;
     };
 } // namespace irods::experimental::api::genquery

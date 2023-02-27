@@ -14,19 +14,19 @@ namespace irods::experimental::api::genquery
         parser_.parse(); // TODO: handle error here
     } // wrapper
 
-    auto wrapper::parse(std::istream& _is) -> Select
+    auto wrapper::parse(std::istream& _is) -> select
     {
         wrapper wrapper(&_is);
         return wrapper.select_;
     } // parse
 
-    auto wrapper::parse(const char* _s) -> Select
+    auto wrapper::parse(const char* _s) -> select
     {
         std::istringstream iss(_s);
         return parse(iss);
     } // parse
 
-    auto wrapper::parse(const std::string& _s) -> Select
+    auto wrapper::parse(const std::string& _s) -> select
     {
         std::istringstream iss(_s);
         return parse(iss);

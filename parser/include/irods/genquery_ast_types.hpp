@@ -9,15 +9,16 @@
 
 namespace irods::experimental::api::genquery
 {
-    struct Column {
-        Column() = default;
+    struct column
+    {
+        column() = default;
 
-        explicit Column(std::string name)
+        explicit column(std::string name)
             : name{std::move(name)}
         {
         }
 
-        Column(std::string name, std::string type_name)
+        column(std::string name, std::string type_name)
             : name{std::move(name)}
             , type_name{std::move(type_name)}
         {
@@ -27,114 +28,174 @@ namespace irods::experimental::api::genquery
         std::string type_name;
     };
 
-    struct SelectFunction {
-        SelectFunction() = default;
-        SelectFunction(std::string name, Column column)
-            : name{std::move(name)}, column{std::move(column)} {}
+    struct select_function
+    {
+        select_function() = default;
+
+        select_function(std::string name, column column)
+            : name{std::move(name)}
+            , column{std::move(column)}
+        {
+        }
+
         std::string name;
-        Column column;
+        column column;
     };
 
-    struct ConditionLike {
-        ConditionLike() = default;
-        explicit ConditionLike(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
+    struct condition_like
+    {
+        condition_like() = default;
+
+        explicit condition_like(std::string string_literal)
+            : string_literal{std::move(string_literal)}
+        {
+        }
+
         std::string string_literal;
     };
 
-    struct ConditionIn {
-        ConditionIn() = default;
-        explicit ConditionIn(std::vector<std::string> list_of_string_literals)
-            : list_of_string_literals{std::move(list_of_string_literals)} {}
+    struct condition_in
+    {
+        condition_in() = default;
+
+        explicit condition_in(std::vector<std::string> list_of_string_literals)
+            : list_of_string_literals{std::move(list_of_string_literals)}
+        {
+        }
+
         std::vector<std::string> list_of_string_literals;
     };
 
-    struct ConditionBetween {
-        ConditionBetween() = default;
-        ConditionBetween(std::string low, std::string high)
-            : low{std::move(low)}, high{std::move(high)} {}
+    struct condition_between
+    {
+        condition_between() = default;
+
+        condition_between(std::string low, std::string high)
+            : low{std::move(low)}, high{std::move(high)}
+        {
+        }
+
         std::string low;
         std::string high;
     };
 
-    struct ConditionEqual {
-        ConditionEqual() = default;
-        explicit ConditionEqual(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
+    struct condition_equal
+    {
+        condition_equal() = default;
+
+        explicit condition_equal(std::string string_literal)
+            : string_literal{std::move(string_literal)}
+        {
+        }
+
         std::string string_literal;
     };
 
-    struct ConditionNotEqual {
-        ConditionNotEqual() = default;
-        explicit ConditionNotEqual(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
+    struct condition_not_equal
+    {
+        condition_not_equal() = default;
+
+        explicit condition_not_equal(std::string string_literal)
+            : string_literal{std::move(string_literal)}
+        {
+        }
+
         std::string string_literal;
     };
 
-    struct ConditionLessThan {
-        ConditionLessThan() = default;
-        explicit ConditionLessThan(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
+    struct condition_less_than
+    {
+        condition_less_than() = default;
+
+        explicit condition_less_than(std::string string_literal)
+            : string_literal{std::move(string_literal)}
+        {
+        }
+
         std::string string_literal;
     };
 
-    struct ConditionLessThanOrEqualTo {
-        ConditionLessThanOrEqualTo() = default;
-        explicit ConditionLessThanOrEqualTo(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
+    struct condition_less_than_or_equal_to
+    {
+        condition_less_than_or_equal_to() = default;
+
+        explicit condition_less_than_or_equal_to(std::string string_literal)
+            : string_literal{std::move(string_literal)}
+        {
+        }
+
         std::string string_literal;
     };
 
-    struct ConditionGreaterThan {
-        ConditionGreaterThan() = default;
-        explicit ConditionGreaterThan(std::string string_literal)
-            : string_literal{std::move(string_literal)} {}
+    struct condition_greater_than
+    {
+        condition_greater_than() = default;
+
+        explicit condition_greater_than(std::string string_literal)
+            : string_literal{std::move(string_literal)}
+        {
+        }
+
         std::string string_literal;
     };
 
-    struct ConditionGreaterThanOrEqualTo {
-        ConditionGreaterThanOrEqualTo() = default;
-        explicit ConditionGreaterThanOrEqualTo(std::string string_literal)
+    struct condition_greater_than_or_equal_to
+    {
+        condition_greater_than_or_equal_to() = default;
+
+        explicit condition_greater_than_or_equal_to(std::string string_literal)
             : string_literal{std::move(string_literal)} {}
+
         std::string string_literal;
     };
 
-    struct ConditionIsNull
+    struct condition_is_null
     {
     };
 
-    struct ConditionIsNotNull
+    struct condition_is_not_null
     {
     };
 
-    struct ConditionOperator_Not;
+    struct condition_operator_not;
 
-    using ConditionExpression = boost::variant<ConditionLike,
-                                               ConditionIn,
-                                               ConditionBetween,
-                                               ConditionEqual,
-                                               ConditionNotEqual,
-                                               ConditionLessThan,
-                                               ConditionLessThanOrEqualTo,
-                                               ConditionGreaterThan,
-                                               ConditionGreaterThanOrEqualTo,
-                                               ConditionIsNull,
-                                               ConditionIsNotNull,
-                                               boost::recursive_wrapper<ConditionOperator_Not>>;
+    using condition_expression = boost::variant<condition_like,
+                                                condition_in,
+                                                condition_between,
+                                                condition_equal,
+                                                condition_not_equal,
+                                                condition_less_than,
+                                                condition_less_than_or_equal_to,
+                                                condition_greater_than,
+                                                condition_greater_than_or_equal_to,
+                                                condition_is_null,
+                                                condition_is_not_null,
+                                                boost::recursive_wrapper<condition_operator_not>>;
 
-    struct ConditionOperator_Not {
-        ConditionOperator_Not() = default;
-        ConditionOperator_Not(ConditionExpression expression)
-            : expression{std::move(expression)} {}
-        ConditionExpression expression;
+    struct condition_operator_not
+    {
+        condition_operator_not() = default;
+
+        condition_operator_not(condition_expression expression)
+            : expression{std::move(expression)}
+        {
+        }
+
+        condition_expression expression;
     };
 
-    struct Condition {
-        Condition() = default;
-        Condition(Column column, ConditionExpression expression)
-            : column{std::move(column)}, expression{std::move(expression)} {}
-        Column column;
-        ConditionExpression expression;
+    struct condition
+    {
+        condition() = default;
+
+        condition(column column, condition_expression expression)
+            : column{std::move(column)}
+            , expression{std::move(expression)}
+        {
+        }
+
+        column column;
+        condition_expression expression;
     };
 
     struct logical_and;
@@ -146,33 +207,32 @@ namespace irods::experimental::api::genquery
                                           logical_or,
                                           logical_not,
                                           logical_grouping,
-                                          Condition>;
+                                          condition>;
 
     // clang-format off
-    using Selection     = boost::variant<SelectFunction, Column>;
-    using Selections    = std::vector<Selection>;
-    using Conditions    = std::vector<condition_type>;
-    //using order_by_type = std::vector<std::string>;
+    using selection  = boost::variant<select_function, column>;
+    using selections = std::vector<selection>;
+    using conditions = std::vector<condition_type>;
     // clang-format on
 
     struct logical_and
     {
-        Conditions condition;
+        conditions condition;
     };
 
     struct logical_or
     {
-        Conditions condition;
+        conditions condition;
     };
 
     struct logical_not
     {
-        Conditions condition;
+        conditions condition;
     };
 
     struct logical_grouping
     {
-        Conditions conditions;
+        conditions conditions;
     };
 
     struct sort_expression
@@ -192,18 +252,18 @@ namespace irods::experimental::api::genquery
         std::string number_of_rows;
     }; // struct range
 
-    struct Select
+    struct select
     {
-        Select() = default;
+        select() = default;
 
-        Select(Selections selections, Conditions conditions)
+        select(selections selections, conditions conditions)
             : selections(std::move(selections))
             , conditions(std::move(conditions))
         {
         }
 
-        Selections selections;
-        Conditions conditions;
+        selections selections;
+        conditions conditions;
         order_by order_by;
         range range;
         bool distinct = true;

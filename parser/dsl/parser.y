@@ -93,16 +93,16 @@ rules only.
 %left AND
 %precedence NOT
 
-%type<gq::Selections> selections;
-%type<gq::Conditions> conditions;
+%type<gq::selections> selections;
+%type<gq::conditions> conditions;
 %type<gq::order_by> order_by;
 %type<std::vector<gq::sort_expression>> sort_expr;
 %type<gq::range> range;
-%type<gq::Selection> selection;
-%type<gq::Column> column;
-%type<gq::SelectFunction> select_function;
-%type<gq::Condition> condition;
-%type<gq::ConditionExpression> condition_expression;
+%type<gq::selection> selection;
+%type<gq::column> column;
+%type<gq::select_function> select_function;
+%type<gq::condition> condition;
+%type<gq::condition_expression> condition_expression;
 %type<std::vector<std::string>> list_of_string_literals;
 %type<std::vector<std::string>> list_of_identifiers;
 
@@ -144,7 +144,7 @@ range:
   | LIMIT POSITIVE_INTEGER OFFSET POSITIVE_INTEGER  { std::swap($$.offset, $4); std::swap($$.number_of_rows, $2); }
 
 selections:
-    selection  { $$ = gq::Selections{std::move($1)}; }
+    selection  { $$ = gq::selections{std::move($1)}; }
   | selections COMMA selection  { $1.push_back(std::move($3)); std::swap($$, $1); }
 
 selection:
@@ -152,39 +152,39 @@ selection:
   | select_function  { $$ = std::move($1); }
 
 column:
-    IDENTIFIER  { $$ = gq::Column{std::move($1)}; }
-  | CAST PAREN_OPEN IDENTIFIER AS IDENTIFIER PAREN_CLOSE  { $$ = gq::Column{$3, $5}; }
-  | CAST PAREN_OPEN IDENTIFIER AS IDENTIFIER PAREN_OPEN POSITIVE_INTEGER PAREN_CLOSE PAREN_CLOSE  { $$ = gq::Column{$3, fmt::format("{}({})", $5, $7)}; }
+    IDENTIFIER  { $$ = gq::column{std::move($1)}; }
+  | CAST PAREN_OPEN IDENTIFIER AS IDENTIFIER PAREN_CLOSE  { $$ = gq::column{$3, $5}; }
+  | CAST PAREN_OPEN IDENTIFIER AS IDENTIFIER PAREN_OPEN POSITIVE_INTEGER PAREN_CLOSE PAREN_CLOSE  { $$ = gq::column{$3, fmt::format("{}({})", $5, $7)}; }
 
 select_function:
-    IDENTIFIER PAREN_OPEN column PAREN_CLOSE  { $$ = gq::SelectFunction{std::move($1), gq::Column{std::move($3)}}; }
-    /*IDENTIFIER PAREN_OPEN IDENTIFIER PAREN_CLOSE  { $$ = gq::SelectFunction{std::move($1), gq::Column{std::move($3)}}; }*/
+    IDENTIFIER PAREN_OPEN column PAREN_CLOSE  { $$ = gq::select_function{std::move($1), gq::column{std::move($3)}}; }
+    /*IDENTIFIER PAREN_OPEN IDENTIFIER PAREN_CLOSE  { $$ = gq::select_function{std::move($1), gq::column{std::move($3)}}; }*/
 
 conditions:
-    condition  { $$ = gq::Conditions{std::move($1)}; }
+    condition  { $$ = gq::conditions{std::move($1)}; }
   | conditions AND conditions  { $1.push_back(gq::logical_and{std::move($3)}); std::swap($$, $1); }
   | conditions OR conditions  { $1.push_back(gq::logical_or{std::move($3)}); std::swap($$, $1); }
-  | PAREN_OPEN conditions PAREN_CLOSE  { $$ = gq::Conditions{gq::logical_grouping{std::move($2)}}; }
-  | NOT conditions  { $$ = gq::Conditions{gq::logical_not{std::move($2)}}; }
+  | PAREN_OPEN conditions PAREN_CLOSE  { $$ = gq::conditions{gq::logical_grouping{std::move($2)}}; }
+  | NOT conditions  { $$ = gq::conditions{gq::logical_not{std::move($2)}}; }
 
 condition:
-    column condition_expression  { $$ = gq::Condition(std::move($1), std::move($2)); }
+    column condition_expression  { $$ = gq::condition(std::move($1), std::move($2)); }
 
 condition_expression:
-    LIKE STRING_LITERAL  { $$ = gq::ConditionLike(std::move($2)); }
-  | NOT LIKE STRING_LITERAL  { $$ = gq::ConditionOperator_Not{gq::ConditionLike(std::move($3))}; }
-  | IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::ConditionIn(std::move($3)); }
-  | NOT IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::ConditionOperator_Not{gq::ConditionIn(std::move($4))}; }
-  | BETWEEN STRING_LITERAL AND STRING_LITERAL  { $$ = gq::ConditionBetween(std::move($2), std::move($4)); }
-  | NOT BETWEEN STRING_LITERAL AND STRING_LITERAL  { $$ = gq::ConditionOperator_Not{gq::ConditionBetween(std::move($3), std::move($5))}; }
-  | EQUAL STRING_LITERAL  { $$ = gq::ConditionEqual(std::move($2)); }
-  | NOT_EQUAL STRING_LITERAL  { $$ = gq::ConditionNotEqual(std::move($2)); }
-  | LESS_THAN STRING_LITERAL  { $$ = gq::ConditionLessThan(std::move($2)); }
-  | LESS_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionLessThanOrEqualTo(std::move($2)); }
-  | GREATER_THAN STRING_LITERAL  { $$ = gq::ConditionGreaterThan(std::move($2)); }
-  | GREATER_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::ConditionGreaterThanOrEqualTo(std::move($2)); }
-  | IS NULL  { $$ = gq::ConditionIsNull(); }
-  | IS NOT NULL  { $$ = gq::ConditionIsNotNull(); }
+    LIKE STRING_LITERAL  { $$ = gq::condition_like(std::move($2)); }
+  | NOT LIKE STRING_LITERAL  { $$ = gq::condition_operator_not{gq::condition_like(std::move($3))}; }
+  | IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::condition_in(std::move($3)); }
+  | NOT IN PAREN_OPEN list_of_string_literals PAREN_CLOSE  { $$ = gq::condition_operator_not{gq::condition_in(std::move($4))}; }
+  | BETWEEN STRING_LITERAL AND STRING_LITERAL  { $$ = gq::condition_between(std::move($2), std::move($4)); }
+  | NOT BETWEEN STRING_LITERAL AND STRING_LITERAL  { $$ = gq::condition_operator_not{gq::condition_between(std::move($3), std::move($5))}; }
+  | EQUAL STRING_LITERAL  { $$ = gq::condition_equal(std::move($2)); }
+  | NOT_EQUAL STRING_LITERAL  { $$ = gq::condition_not_equal(std::move($2)); }
+  | LESS_THAN STRING_LITERAL  { $$ = gq::condition_less_than(std::move($2)); }
+  | LESS_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::condition_less_than_or_equal_to(std::move($2)); }
+  | GREATER_THAN STRING_LITERAL  { $$ = gq::condition_greater_than(std::move($2)); }
+  | GREATER_THAN_OR_EQUAL_TO STRING_LITERAL  { $$ = gq::condition_greater_than_or_equal_to(std::move($2)); }
+  | IS NULL  { $$ = gq::condition_is_null{}; }
+  | IS NOT NULL  { $$ = gq::condition_is_not_null{}; }
 
 list_of_string_literals:
     STRING_LITERAL  { $$ = std::vector<std::string>{std::move($1)}; }
