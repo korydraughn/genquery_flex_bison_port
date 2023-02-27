@@ -579,10 +579,6 @@ namespace irods::experimental::api::genquery
             // Generate SQL
             //
 
-            //std::sort(std::begin(sql_tables), std::end(sql_tables), [](auto&& _t1, auto&& _t2) {
-                //return table_name_index(_t1) < table_name_index(_t2);
-            //});
-
             fmt::print("\n### PHASE 2: SQL Generation\n\n");
 
             graph_type graph{table_edges.data(),
@@ -706,6 +702,11 @@ namespace irods::experimental::api::genquery
                 sql += fmt::format(" {}", fmt::join(inner_joins, " "));
             }
 
+            // TODO Handle tickets.
+            // Q. Should tickets be scoped to data objects and collections separately?
+            // Q. What happens if a user attempts to query data objects, collections, and tickets in the same query?
+            // Q. Should these questions be handled by specific queries instead?
+
             // TODO Permission checking.
             if (!_opts.admin_mode) {
                 /*
@@ -731,6 +732,28 @@ namespace irods::experimental::api::genquery
                                        iter->second);
                 }
             }
+
+            // TODO Handle situations where columns in the R_OBJT_ACCESS table are requested.
+            // That also means handling R_TOKN_NAMESPACE for permission names (rather than permission integers).
+            //
+            // For example:
+            //
+            //      select DATA_NAME, COLL_NAME, DATA_ACCESS_TYPE, COLL_ACCESS_NAME
+            //
+            // This should result in the following tables:
+            //
+            //      - R_DATA_MAIN
+            //      - R_COLL_MAIN
+            //      - R_OBJT_ACCESS
+            //      - R_TOKN_MAIN
+            //          - condition: token_namespace = 'access_type' and token_id = <integer>
+            //          - column of interest: token_name
+            //
+            // NOTE: Keep in mind that the joins for admins vs non-admins must be handled as well. That means the
+            // example query above needs to work when admins run the query too. Remember, the joins introduced
+            // for non-admins will not be included when an admin runs the GenQuery. Therefore, the results can
+            // change. One way around this is to change the integer value to 0 or the lowest permission integer
+            // when an admin runs the query. That way, the behavior remains the same for all users.
 
             // TODO The following SQL statements can be stored as a format string for reuse. Placeholders can
             // be given names so that we can replace markers that match the same value.
