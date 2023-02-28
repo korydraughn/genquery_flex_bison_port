@@ -1,5 +1,5 @@
-find_package(FLEX 2.6.4 REQUIRED)
-find_package(BISON 3.5.1 REQUIRED)
+find_package(FLEX 2.6.1 REQUIRED)
+find_package(BISON 3.0.4 REQUIRED)
 
 set(IRODS_FLEX_LEXER_NAME irods_lexer)
 set(IRODS_BISON_PARSER_NAME irods_parser)
