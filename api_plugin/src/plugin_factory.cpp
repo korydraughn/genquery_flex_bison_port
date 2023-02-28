@@ -31,8 +31,12 @@ extern "C" auto plugin_factory(
 		0,
 		op,
 		"api_genquery2",
+#ifdef IRODS_ENABLE_430_COMPATIBILITY
+		irods::clearInStruct_noop,
+#else
 		irods::clearInStruct_noop,
 		irods::clearOutStruct_noop, // TODO This blocks support for 4.2.
+#endif // IRODS_ENABLE_430_COMPATIBILITY
 		fn_ptr
 	};
 	// clang-format on

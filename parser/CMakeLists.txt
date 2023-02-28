@@ -1,5 +1,3 @@
-option(IRODS_ENABLE_430_COMPATIBILITY "Enables compatibility with iRODS 4.3.0." YES) # Default to YES for community.
-
 find_package(FLEX 2.6.1 REQUIRED)
 find_package(BISON 3.0.4 REQUIRED)
 

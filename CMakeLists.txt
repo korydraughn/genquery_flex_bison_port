@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
 
+option(IRODS_ENABLE_430_COMPATIBILITY "Enables compatibility with iRODS 4.3.0." YES) # Default to YES for community.
+
 find_package(IRODS REQUIRED CONFIG)
 
 set(IRODS_PLUGIN_REVISION "0")
