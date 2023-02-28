@@ -27,6 +27,7 @@ Once stable, the code will be merged into the iRODS server making it available w
 - Cannot resolve tickets to data objects and collections using a single query
 - Microservices are not callable from the Python Rule Engine Plugin
 - Integer values must be treated as strings, except when used for OFFSET, LIMIT, FETCH FIRST _N_ ROWS ONLY
+- Federation is not supported
 
 ## Building
 
