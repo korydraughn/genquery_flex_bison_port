@@ -14,7 +14,11 @@ extern "C" auto plugin_factory(
 #ifdef RODS_SERVER
         // If your API endpoint is designed to be invocable by non-admins, then you need to
         // add the API plugin number to the allowlist.
+#ifdef IRODS_ENABLE_430_COMPATIBILITY
+	irods::client_api_allowlist::instance().add(IRODS_APN_GENQUERY2);
+#else
 	irods::client_api_allowlist::add(IRODS_APN_GENQUERY2);
+#endif // IRODS_ENABLE_430_COMPATIBILITY
 #endif // RODS_SERVER
 
 	// TODO We need to be able to add API plugin numbers to the API plugin number map.
