@@ -137,7 +137,8 @@ iquery "select COLL_NAME, DATA_NAME, RESC_NAME where META_COLL_ATTR_NAME = 'a1' 
 
 NOTE: GenQuery2 column names are subject to change as the implementation is improved.
 
-|: GenQuery2 Column :|: Database Table :|: Database Column :|
+| GenQuery2 Column | Database Table | Database Column |
+|---|---|---|
 | ZONE_ID | R_ZONE_MAIN | zone_id |
 | ZONE_NAME | R_ZONE_MAIN | zone_name |
 | ZONE_TYPE | R_ZONE_MAIN | zone_type_name |
