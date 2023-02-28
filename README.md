@@ -41,8 +41,9 @@ This project only compiles against iRODS 4.3.0 and depends on the following:
 - irods-externals-json
 - irods-externals-nanodbc
 - irods-externals-spdlog
-- flex 2.6.4
-- bison 3.5.1
+- openssl development libraries
+- flex 2.6.1
+- bison 3.0
 
 The steps for building the package are:
 ```bash
@@ -135,6 +136,21 @@ iquery "select COLL_NAME, DATA_NAME where DATA_RESC_HIER in ('demoResc', 'pt;rep
 
 # List all data objects along with the resource name which satisfy the mixed metadata query.
 iquery "select COLL_NAME, DATA_NAME, RESC_NAME where META_COLL_ATTR_NAME = 'a1' and (META_DATA_ATTR_NAME = 'a2' or META_RESC_ATTR_VALUE not like 'v1%')"
+```
+
+## Logging
+
+You can instruct the parser to show additional information as it processes messages by adding the following line to the log_level stanza in server_config.json. For example:
+```javascript
+{
+    "log_level": {
+        // ... Other Log Categories ...
+
+        "genquery2": "trace",
+
+        // ... Other Log Categories ...
+    }
+}
 ```
 
 ## Available Columns

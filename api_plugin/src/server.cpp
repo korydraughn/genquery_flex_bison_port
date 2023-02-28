@@ -55,7 +55,7 @@ namespace
 
 			if (!ic::connected_to_catalog_provider(*_comm)) {
 				log_api::trace("Redirecting request to catalog service provider.");
-				[[maybe_unused]] auto* host_info = ic::redirect_to_catalog_provider(*_comm);
+				auto* host_info = ic::redirect_to_catalog_provider(*_comm);
 
                                 return procApiRequest(
                                         host_info->conn,

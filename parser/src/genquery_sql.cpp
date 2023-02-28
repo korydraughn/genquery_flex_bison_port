@@ -21,6 +21,19 @@
 #include <utility>
 #include <vector>
 
+namespace irods::experimental::log
+{
+    struct genquery2 {};
+
+    template <>
+    class logger_config<genquery2>
+    {
+        static constexpr const char* name = "genquery2";
+        inline static level level = level::info;
+        friend class logger<genquery2>;
+    };
+} // namespace irods::experimental
+
 namespace
 {
     namespace gq = irods::experimental::api::genquery;
@@ -33,7 +46,7 @@ namespace
     using vertices_size_type = boost::graph_traits<graph_type>::vertices_size_type;
     using edge_type          = std::pair<vertex_type, vertex_type>;
 
-    using log_sql            = irods::experimental::log::sql;
+    using log_gq             = irods::experimental::log::logger<irods::experimental::log::genquery2>;
     // clang-format on
 
     struct gq_state
@@ -310,12 +323,12 @@ namespace
         // Copy all entries from "_tables" into the list except the very first one.
         // The first element is the table we are trying to join to. So, we consider that one handled.
         std::vector<std::string> remaining{std::begin(_tables) + 1, std::end(_tables)};
-        log_sql::debug(fmt::format("remaining = [{}]", fmt::join(remaining, ", ")));
+        log_gq::debug(fmt::format("remaining = [{}]", fmt::join(remaining, ", ")));
 
         std::vector<std::string> processed;
         processed.reserve(_tables.size());
         processed.push_back(std::string{_tables.front()});
-        log_sql::debug(fmt::format("processed = [{}]", fmt::join(processed, ", ")));
+        log_gq::debug(fmt::format("processed = [{}]", fmt::join(processed, ", ")));
 
         for (decltype(_tables.size()) i = 0; i < _tables.size() - 1; ++i) {
             const auto& last = processed.back();
@@ -923,17 +936,19 @@ namespace irods::experimental::api::genquery
     auto to_sql(const select& _select, const options& _opts) -> std::tuple<std::string, std::vector<std::string>>
     {
         try {
+            log_gq::set_level(irods::experimental::log::get_level_from_config("genquery2"));
+
             gq_state state;
 
-            log_sql::trace("### PHASE 1: Gather");
+            log_gq::trace("### PHASE 1: Gather");
 
             const auto cols = to_sql(state, _select.selections);
-            log_sql::debug("SELECT COLUMNS = {}", cols);
+            log_gq::debug("SELECT COLUMNS = {}", cols);
 
             // Convert the conditions of the general query statement into SQL with prepared
             // statement placeholders.
             const auto conds = to_sql(state, _select.conditions);
-            log_sql::debug("CONDITIONS = {}", conds);
+            log_gq::debug("CONDITIONS = {}", conds);
 
             if (state.sql_tables.empty()) {
                 return {{}, {}};
@@ -952,28 +967,28 @@ namespace irods::experimental::api::genquery
                     alias = iter->second;
                 }
 
-                log_sql::debug("TABLE => {} [alias={}]", _t, alias);
+                log_gq::debug("TABLE => {} [alias={}]", _t, alias);
             });
 
             std::for_each(std::begin(state.columns_for_select_clause), std::end(state.columns_for_select_clause), [](auto&& _c) {
-                log_sql::debug("COLUMN FOR SELECT CLAUSE => {}", _c);
+                log_gq::debug("COLUMN FOR SELECT CLAUSE => {}", _c);
             });
 
             std::for_each(std::begin(state.columns_for_where_clause), std::end(state.columns_for_where_clause), [](auto&& _c) {
-                log_sql::debug("COLUMN FOR WHERE CLAUSE => {}", _c);
+                log_gq::debug("COLUMN FOR WHERE CLAUSE => {}", _c);
             });
 
-            log_sql::debug("requires metadata table joins for R_DATA_MAIN? {}", state.add_joins_for_meta_data);
-            log_sql::debug("requires metadata table joins for R_COLL_MAIN? {}", state.add_joins_for_meta_coll);
-            log_sql::debug("requires metadata table joins for R_RESC_MAIN? {}", state.add_joins_for_meta_resc);
-            log_sql::debug("requires metadata table joins for R_USER_MAIN? {}", state.add_joins_for_meta_user);
-            log_sql::debug("requires table joins for DATA_RESC_HIER? {}", state.add_sql_for_data_resc_hier);
+            log_gq::debug("requires metadata table joins for R_DATA_MAIN? {}", state.add_joins_for_meta_data);
+            log_gq::debug("requires metadata table joins for R_COLL_MAIN? {}", state.add_joins_for_meta_coll);
+            log_gq::debug("requires metadata table joins for R_RESC_MAIN? {}", state.add_joins_for_meta_resc);
+            log_gq::debug("requires metadata table joins for R_USER_MAIN? {}", state.add_joins_for_meta_user);
+            log_gq::debug("requires table joins for DATA_RESC_HIER? {}", state.add_sql_for_data_resc_hier);
 
             //
             // Generate SQL
             //
 
-            log_sql::trace("### PHASE 2: SQL Generation");
+            log_gq::trace("### PHASE 2: SQL Generation");
 
             auto graph = init_graph();
 
@@ -998,12 +1013,12 @@ namespace irods::experimental::api::genquery
                                              ///////////////////
                                              fmt::arg("alias", state.table_aliases.at(std::string{state.sql_tables.front()})));
 
-            log_sql::debug("SELECT CLAUSE => {}", select_clause);
+            log_gq::debug("SELECT CLAUSE => {}", select_clause);
 
             const auto inner_joins = generate_inner_joins(graph, state.sql_tables, state.table_aliases);
 
             std::for_each(std::begin(inner_joins), std::end(inner_joins), [](auto&& _j) {
-                log_sql::debug("INNER JOIN => {}", _j);
+                log_gq::debug("INNER JOIN => {}", _j);
             });
 
             if (inner_joins.size() != state.sql_tables.size() - 1) {
@@ -1040,15 +1055,15 @@ namespace irods::experimental::api::genquery
             }
 
             std::for_each(std::begin(state.values), std::end(state.values), [](auto&& _j) {
-                log_sql::debug("BINDABLE VALUE => {}", _j);
+                log_gq::debug("BINDABLE VALUE => {}", _j);
             });
 
-            log_sql::debug("GENERATED SQL => [{}]", sql);
+            log_gq::debug("GENERATED SQL => [{}]", sql);
 
             return {sql, std::move(state.values)};
         }
         catch (const std::exception& e) {
-            log_sql::error(e.what());
+            log_gq::error(e.what());
         }
 
         return {{}, {}};

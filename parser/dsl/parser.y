@@ -4,7 +4,7 @@
 %defines /* Doesn't work in version 3.0 - %header */
 
 /* The name of the parser class. Defaults to "parser" in C++. */
-%define api.parser.class { parser }
+/* %define api.parser.class { parser } */
 
 /*
 Request that symbols be handled as a whole (type, value, and possibly location)
