@@ -47,7 +47,7 @@ namespace irods::experimental::log
         friend class logger<genquery2>;
     }; // class logger_config<genquery2>
 } // namespace irods::experimental::log
-#endif
+#endif // IRODS_ENABLE_430_COMPATIBILITY
 
 namespace
 {
@@ -61,7 +61,11 @@ namespace
     using vertices_size_type = boost::graph_traits<graph_type>::vertices_size_type;
     using edge_type          = std::pair<vertex_type, vertex_type>;
 
+#ifdef IRODS_ENABLE_430_COMPATIBILITY
+    using log_gq             = irods::experimental::log::logger<irods::experimental::genquery2>;
+#else
     using log_gq             = irods::experimental::log::logger<irods::experimental::log::genquery2>;
+#endif // IRODS_ENABLE_430_COMPATIBILITY
     // clang-format on
 
     struct gq_state
