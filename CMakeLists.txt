@@ -64,7 +64,7 @@ add_subdirectory(client)
 include(IrodsCPackCommon)
 include(IrodsCPackPlatform)
 
-set(IRODS_PACKAGE_NAME irods-api-plugin-genquery2)
+set(IRODS_PACKAGE_NAME irods-experimental-api-plugin-genquery2)
 
 list(APPEND CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "${CPACK_PACKAGING_INSTALL_PREFIX}${IRODS_HOME_DIRECTORY}")
 list(APPEND CPACK_RPM_EXCLUDE_FROM_AUTO_FILELIST_ADDITION "${CPACK_PACKAGING_INSTALL_PREFIX}${IRODS_HOME_DIRECTORY}/scripts")

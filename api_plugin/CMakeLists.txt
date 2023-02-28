@@ -1,51 +1,3 @@
-#cmake_minimum_required(VERSION 3.12.0 FATAL_ERROR)
-#
-#find_package(IRODS REQUIRED CONFIG)
-#
-#set(IRODS_PLUGIN_REVISION "0")
-#set(IRODS_PLUGIN_VERSION "${IRODS_VERSION}.${IRODS_PLUGIN_REVISION}")
-#
-#set(IRODS_PACKAGE_REVISION "1")
-#
-#include(RequireOutOfSourceBuild)
-#include(IrodsCXXCompiler)
-
-#set(CMAKE_CXX_STANDARD ${IRODS_CXX_STANDARD})
-## export-dynamic so stacktrace entries from executables have function names.
-#set(CMAKE_EXE_LINKER_FLAGS_INIT "-rdynamic -Wl,--export-dynamic -Wl,--enable-new-dtags -Wl,--as-needed -Wl,-z,defs")
-#set(CMAKE_EXE_LINKER_FLAGS_RELEASE_INIT "-Wl,--gc-sections -Wl,-z,combreloc")
-
-#project(
-#  irods_genquery2_cpp_api_plugin
-#  VERSION "${IRODS_VERSION}"
-#  LANGUAGES CXX)
-
-#set(CMAKE_SKIP_BUILD_RPATH OFF)
-#set(CMAKE_SKIP_INSTALL_RPATH OFF)
-#set(CMAKE_SKIP_RPATH OFF)
-#set(CMAKE_INSTALL_RPATH_USE_LINK_PATH ON)
-#set(CMAKE_BUILD_WITH_INSTALL_RPATH OFF)
-#set(CMAKE_BUILD_RPATH_USE_ORIGIN ON)
-
-#include(${IRODS_TARGETS_PATH})
-#include(GNUInstallDirs)
-#include(UseLibCXX)
-
-#if (NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-#  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build {Debug, Release}." FORCE)
-#  message(STATUS "Setting unspecified CMAKE_BUILD_TYPE to '${CMAKE_BUILD_TYPE}'. This is the correct setting for normal builds.")
-#endif()
-
-#find_package(nlohmann_json "3.6.1" REQUIRED)
-#find_package(Threads REQUIRED)
-#find_package(OpenSSL REQUIRED COMPONENTS Crypto SSL)
-
-#if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-#  add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fpermissive>)
-#endif()
-
-#add_compile_options(-Wall -Wextra -Werror -Wconversion -Wshadow -Wpedantic)
-
 set(IRODS_MODULE_NAME_PREFIX irods_genquery2)
 
 foreach (IRODS_MODULE_VARIANT IN ITEMS client server)
@@ -86,9 +38,6 @@ foreach (IRODS_MODULE_VARIANT IN ITEMS client server)
     irods_plugin_dependencies
     irods_common
     irods_${IRODS_MODULE_VARIANT}
-    #${IRODS_EXTERNALS_FULLPATH_ARCHIVE}/lib/libarchive.so
-    #${IRODS_EXTERNALS_FULLPATH_BOOST}/lib/libboost_filesystem.so
-    #${IRODS_EXTERNALS_FULLPATH_BOOST}/lib/libboost_system.so
     ${IRODS_EXTERNALS_FULLPATH_FMT}/lib/libfmt.so
     ${IRODS_EXTERNALS_FULLPATH_NANODBC}/lib/libnanodbc.so)
 
