@@ -14,10 +14,12 @@ Once stable, the code will be merged into the iRODS server making it available w
 - Logical AND, OR, and NOT
 - Grouping via parentheses
 - SQL CAST
+- SQL aggregate functions (e.g. count, sum, avg, etc)
 - Per-column sorting via ORDER BY [ASC|DESC]
 - SQL FETCH FIRST N ROWS ONLY (LIMIT offered as an alias)
 - Metadata queries involving different iRODS entities (i.e. data objects, collections, users, and resources)
-- Operators: =, !=, <, <=, >, >=, LIKE, BETWEEN, IS NULL
+- Operators: =, !=, <, <=, >, >=, LIKE, BETWEEN, IS [NOT] NULL
+- SQL keywords are case-insensitive
 
 ## Limitations (for now)
 
@@ -45,7 +47,8 @@ The steps for building the package are:
 ```bash
 mkdir build
 cd build
-cmake --build /path/to/git/repo
+cmake /path/to/git/repo
+ninja package # Or, make -j package
 ```
 
 So far, this implementation has only run on Ubuntu 20.04. Support for other OS are a few tweaks away.
