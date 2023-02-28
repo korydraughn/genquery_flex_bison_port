@@ -1,6 +1,6 @@
 # iRODS GenQuery2 Parser
 
-An experimental re-implementation of the iRODS GenQuery parser.
+An **experimental** re-implementation of the iRODS GenQuery parser.
 
 This project exists as a means for allowing the iRODS community to test the implementation and provide feedback so that the iRODS Consortium can produce a GenQuery parser that is easy to understand, maintain, and enhance all while providing a syntax that mirrors standard SQL as much as possible.
 
