@@ -43,7 +43,9 @@ This project only compiles against iRODS 4.3.0 and depends on the following:
 - irods-externals-spdlog
 - openssl development libraries
 - flex 2.6.1
-- bison 3.0
+- bison 3.0.4
+
+You may need to install rpm-build for Almalinux 8.
 
 The steps for building the package are:
 ```bash
@@ -58,7 +60,7 @@ If you're compiling this project against a later version of iRODS 4.3, then you'
 cmake -DIRODS_ENABLE_430_COMPATIBILITY=NO /path/to/git/repo
 ```
 
-So far, this implementation has only run on Ubuntu 20.04. Support for other OS are a few tweaks away.
+So far, this implementation has only run on Ubuntu 20.04 and Almalinux 8.
 
 ## Usage
 
