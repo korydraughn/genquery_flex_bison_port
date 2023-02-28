@@ -67,8 +67,8 @@ In order to use the microservices, you'll need to enable the Rule Engine Plugin.
 In your server_config.json file, insert the following inside of the rule_engines stanza:
 ```json
 {
-    "plugin_instance": "irods_rule_engine-genquery2",
-    "plugin_name": "irods_rule_engine-genquery2-instance",
+    "instance_name": "irods_rule_engine-genquery2-instance",
+    "plugin_name": "irods_rule_engine-genquery2",
     "plugin_specific_configuration": {}
 }
 ```
