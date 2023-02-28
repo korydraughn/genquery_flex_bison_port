@@ -23,6 +23,14 @@ add_library(
 set_target_properties(${IRODS_PARSER_NAME} PROPERTIES INTERFACE_POSITION_INDEPENDENT_CODE TRUE)
 set_target_properties(${IRODS_PARSER_NAME} PROPERTIES POSITION_INDEPENDENT_CODE TRUE)
 
+target_compile_definitions(
+  ${IRODS_PARSER_NAME}
+  PRIVATE
+  ${IRODS_COMPILE_DEFINITIONS_PRIVATE}
+  #RODS_SERVER
+  #ENABLE_RE
+  IRODS_ENABLE_SYSLOG)
+
 target_include_directories(
   ${IRODS_PARSER_NAME}
   PRIVATE
@@ -30,16 +38,18 @@ target_include_directories(
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${IRODS_EXTERNALS_FULLPATH_BOOST}/include
   ${IRODS_EXTERNALS_FULLPATH_CLANG}/include/c++/v1
-  ${IRODS_EXTERNALS_FULLPATH_FMT}/include)
+  ${IRODS_EXTERNALS_FULLPATH_FMT}/include
+  ${IRODS_EXTERNALS_FULLPATH_JSON}/include # TODO Should this be nlohmann_json::nlohmann_json?
+  ${IRODS_EXTERNALS_FULLPATH_SPDLOG}/include)
 
 target_link_libraries(
   ${IRODS_PARSER_NAME}
   PRIVATE
   #${FLEX_LIBRARIES} # This causes a compiler error when using C++ (i.e. undefined reference to yylex()).
+  irods_server
   ${IRODS_EXTERNALS_FULLPATH_CLANG_RUNTIME}/lib/libc++.so
   ${IRODS_EXTERNALS_FULLPATH_FMT}/lib/libfmt.so)
 
-# TODO Setup install directives.
 install(
   FILES
   ${CMAKE_CURRENT_SOURCE_DIR}/include/irods/genquery_sql.hpp

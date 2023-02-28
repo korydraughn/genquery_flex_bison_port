@@ -79,7 +79,7 @@ namespace
                     gq::options opts;
                     opts.username = _comm->clientUser.userName; // TODO Handle remote users?
                     opts.admin_mode = irods::is_privileged_client(*_comm);
-                    const auto sql = gq::sql(ast, opts);
+                    const auto [sql, values] = gq::to_sql(ast, opts);
 
                     log_api::info("Returning to client: [{}]", sql);
 
@@ -93,7 +93,6 @@ namespace
                     nanodbc::statement stmt{db_conn};
                     nanodbc::prepare(stmt, sql);
 
-                    const auto& values = gq::get_bind_values();
                     for (std::vector<std::string>::size_type i = 0; i < values.size(); ++i) {
                         stmt.bind(static_cast<short>(i), values.at(i).c_str());
                     }

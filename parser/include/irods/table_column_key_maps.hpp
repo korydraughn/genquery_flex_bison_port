@@ -131,8 +131,11 @@ namespace irods::experimental::api::genquery
         {"META_USER_CREATE_TIME", {"R_META_MAIN", "create_ts"}},
         {"META_USER_MODIFY_TIME", {"R_META_MAIN", "modify_ts"}},
 
-        {"USER_GROUP_ID",   {"R_USER_GROUP", "group_user_id"}}, // TODO special?
-        {"USER_GROUP_NAME", {"R_USER_MAIN", "user_name"}}, // TODO special?
+        // TODO These columns require a bit of work.
+        // How should we handle groups?
+        // Is it okay to require multiple calls to GenQuery to resolve IDs to names?
+        {"GROUP_ID",        {"R_USER_GROUP", "group_user_id"}},
+        {"GROUP_MEMBER_ID", {"R_USER_GROUP", "user_id"}},
 
         {"DELAY_RULE_ID",                 {"R_RULE_EXEC", "rule_exec_id"}},
         {"DELAY_RULE_NAME",               {"R_RULE_EXEC", "rule_name"}},

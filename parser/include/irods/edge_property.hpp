@@ -7,7 +7,7 @@ namespace irods::experimental::genquery
 {
     struct edge_property
     {
-        std::string_view table_join_fmt;
+        std::string_view join_condition;
     }; // struct edge_property
 } // namespace irods::experimental::genquery
 
