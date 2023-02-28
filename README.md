@@ -96,7 +96,7 @@ genquery2_test_rule()
 
 We can run the rule using the following:
 ```bash
-irule -r irods_rule_engine_plugin-irods_rule_language-instance genquery2_test_rule null ruleExecOut
+irule -r irods_rule_engine_plugin-irods_rule_language-instance genquery2_test_rule '*ctx=%*coll_name=%*data_name=' ruleExecOut
 ```
 
 ### iCommand
