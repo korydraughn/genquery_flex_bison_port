@@ -53,6 +53,11 @@ cmake /path/to/git/repo
 ninja package # Or, make -j package
 ```
 
+If you're compiling this project against a later version of iRODS 4.3, then you'll need to disable 4.3.0 compatibility. To do that, run the following:
+```bash
+cmake -DIRODS_ENABLE_430_COMPATIBILITY=NO /path/to/git/repo
+```
+
 So far, this implementation has only run on Ubuntu 20.04. Support for other OS are a few tweaks away.
 
 ## Usage

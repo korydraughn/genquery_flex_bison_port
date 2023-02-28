@@ -21,6 +21,20 @@
 #include <utility>
 #include <vector>
 
+#ifdef IRODS_ENABLE_430_COMPATIBILITY
+namespace irods::experimental
+{
+    struct genquery2 {};
+
+    template <>
+    class log::logger_config<genquery2>
+    {
+        static constexpr const char* name = "genquery2";
+        inline static log::level level = log::level::info;
+        friend class logger<genquery2>;
+    }; // class logger_config<genquery2>
+} // namespace irods::experimental
+#else
 namespace irods::experimental::log
 {
     struct genquery2 {};
@@ -31,8 +45,9 @@ namespace irods::experimental::log
         static constexpr const char* name = "genquery2";
         inline static level level = level::info;
         friend class logger<genquery2>;
-    };
-} // namespace irods::experimental
+    }; // class logger_config<genquery2>
+} // namespace irods::experimental::log
+#endif
 
 namespace
 {
